@@ -19,6 +19,7 @@ export default function Home() {
   const [highlightedMarkdown, setHighlightedMarkdown] = useState('');
   const contentRef = useRef<HTMLDivElement | null>(null);
   const selectedParagraphRef = useRef<HTMLElement | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -29,7 +30,7 @@ export default function Home() {
   };
 
   const highlightAllWordOccurrences = (word: string, focusOccurrenceIndex: number) => {
-    let content = markdownContent;
+    const content = markdownContent;
     let currentIndex = 0;
     let occurrenceCount = 0;
     let highlightedContent = '';
@@ -462,8 +463,8 @@ export default function Home() {
             if (!paragraphEl || !selectedParagraphWords) return;
             
             // Prevent double execution with a small delay
-            clearTimeout((window as any).highlightTimeout);
-            (window as any).highlightTimeout = setTimeout(() => {
+            if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+            highlightTimeoutRef.current = setTimeout(() => {
               // Clear existing highlights
               clearAllHighlights();
               

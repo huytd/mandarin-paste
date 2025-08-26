@@ -26,27 +26,9 @@ export default function ParagraphBreakdown({ words, isVisible, onClose, onWordCl
 
       <div
         className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl rounded-t-2xl bg-amber-50 border-t-2 border-amber-200 shadow-2xl z-10"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {/* Header */}
-        <div className="px-4 sm:px-6 pt-3 sm:pt-4">
-          <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-amber-200" />
-          <div className="flex items-start justify-between">
-            <div className="text-base font-semibold text-gray-800">Paragraph breakdown</div>
-            <button
-              onClick={onClose}
-              className="-mr-2 rounded-full p-2 text-gray-500 hover:bg-amber-100 hover:text-gray-800 transition-colors"
-              aria-label="Close breakdown"
-            >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
         {/* Content */}
-        <div className="px-4 sm:px-6 pb-4 max-h-[30vh] overflow-y-auto">
+        <div className="p-4 max-h-[30vh] overflow-y-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {words.map((item, index) => (
               <div
