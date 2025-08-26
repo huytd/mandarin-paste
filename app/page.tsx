@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import TurndownService from 'turndown';
-import { processChineseText, extractChineseCharacters, processChineseTextSequence, ChineseWord } from '../lib/chinese-utils';
-import VocabularyList from '../components/VocabularyList';
+import { processChineseTextSequence, ChineseWord } from '../lib/chinese-utils';
 import ParagraphBreakdown from '../components/ParagraphBreakdown';
 import Link from 'next/link';
 
 export default function Home() {
   const [markdownContent, setMarkdownContent] = useState('');
   const [showPasteArea, setShowPasteArea] = useState(true);
-  const [vocabularyWords, setVocabularyWords] = useState<ChineseWord[]>([]);
-  const [isProcessingVocabulary, setIsProcessingVocabulary] = useState(false);
   const [selectedParagraphWords, setSelectedParagraphWords] = useState<ChineseWord[] | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [highlightedMarkdown, setHighlightedMarkdown] = useState('');
@@ -29,7 +26,7 @@ export default function Home() {
     setHighlightedMarkdown('');
   };
 
-  const highlightAllWordOccurrences = (word: string, focusOccurrenceIndex: number) => {
+  const highlightAllWordOccurrences = (word: string) => {
     const content = markdownContent;
     let currentIndex = 0;
     let occurrenceCount = 0;
@@ -93,46 +90,6 @@ export default function Home() {
     setShowBreakdown(false);
     setSelectedParagraphWords(null);
     clearAllHighlights();
-  };
-
-  // Process Chinese vocabulary when content changes
-  useEffect(() => {
-    if (markdownContent) {
-      processVocabulary(markdownContent);
-    } else {
-      setVocabularyWords([]);
-      setSelectedParagraphWords(null);
-      setShowBreakdown(false);
-      clearAllHighlights();
-    }
-  }, [markdownContent]);
-
-  const processVocabulary = (content: string) => {
-    setIsProcessingVocabulary(true);
-    try {
-      const chineseText = extractChineseCharacters(content);
-      if (chineseText) {
-        // Use setTimeout to make it async and allow UI to update
-        setTimeout(() => {
-          try {
-            const words = processChineseText(content);
-            setVocabularyWords(words);
-          } catch (error) {
-            console.error('Error processing Chinese vocabulary:', error);
-            setVocabularyWords([]);
-          } finally {
-            setIsProcessingVocabulary(false);
-          }
-        }, 100);
-      } else {
-        setVocabularyWords([]);
-        setIsProcessingVocabulary(false);
-      }
-    } catch (error) {
-      console.error('Error processing Chinese vocabulary:', error);
-      setVocabularyWords([]);
-      setIsProcessingVocabulary(false);
-    }
   };
 
   const handlePaste = async (e: React.ClipboardEvent | ClipboardEvent) => {
@@ -263,9 +220,6 @@ export default function Home() {
         ) : (
           // Rendered Content Area
           <div className="bg-white rounded-lg shadow-md">
-            <div className="p-4 border-b border-gray-200 flex justify-end items-center">
-              <a href="#vocabulary-list" className="text-blue-600">Vocabulary List</a>
-            </div>
             <div className="p-8 max-w-none" ref={contentRef}>
               <ReactMarkdown 
                 rehypePlugins={[rehypeRaw]}
@@ -434,19 +388,7 @@ export default function Home() {
                 }}
               >
                 {highlightedMarkdown || markdownContent}
-              </ReactMarkdown>
-              
-              {/* Vocabulary List */}
-              {isProcessingVocabulary && (
-                <div className="mt-8 text-center">
-                  <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
-                    Processing Chinese vocabulary...
-                  </div>
-                </div>
-              )}
-              
-              <VocabularyList words={vocabularyWords} />
+              </ReactMarkdown>              
             </div>
           </div>
         )}
@@ -456,7 +398,7 @@ export default function Home() {
           words={selectedParagraphWords}
           isVisible={showBreakdown}
           onClose={handleCloseBreakdown}
-          onWordClick={(word, index) => {
+          onWordClick={(word) => {
             // Handle highlight + scroll
             const paragraphEl = selectedParagraphRef.current;
             if (!paragraphEl || !selectedParagraphWords) return;
@@ -466,16 +408,8 @@ export default function Home() {
             highlightTimeoutRef.current = setTimeout(() => {
               // Clear existing highlights
               clearAllHighlights();
-              
-              // Count how many times this exact word appears before this index
-              let occurrenceIndex = 0;
-              for (let i = 0; i < index; i++) {
-                if (selectedParagraphWords[i].word === word.word) {
-                  occurrenceIndex += 1;
-                }
-              }
-              
-              highlightAllWordOccurrences(word.word, occurrenceIndex);              
+                            
+              highlightAllWordOccurrences(word.word);              
             }, 10);
           }}
         />

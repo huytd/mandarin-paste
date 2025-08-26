@@ -28,7 +28,7 @@ export default function ParagraphBreakdown({ words, isVisible, onClose, onWordCl
         className="absolute inset-x-0 bottom-0 mx-auto max-w-4xl rounded-t-2xl bg-amber-50 border-t-2 border-amber-200 shadow-2xl z-10"
       >
         {/* Content */}
-        <div className="p-4 max-h-[30vh] overflow-y-auto">
+        <div className="p-4 max-h-[40vh] overflow-y-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {words.map((item, index) => (
               <div

@@ -257,5 +257,3 @@ export function extractChineseCharacters(text: string): string {
   // Extract only Chinese characters from the text
   return text.match(/[\u4e00-\u9fff]/g)?.join('') || '';
 }
-
-
