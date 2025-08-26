@@ -61,7 +61,6 @@ export default function Home() {
     
     if (occurrenceCount > 0) {
       setHighlightedMarkdown(highlightedContent);
-      console.log(`Highlighted all ${occurrenceCount} occurrences of word "${word}", focused on occurrence ${focusOccurrenceIndex}`);
       return true;
     }
     
