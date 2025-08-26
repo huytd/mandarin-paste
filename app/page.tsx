@@ -5,18 +5,16 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import TurndownService from 'turndown';
 import { processChineseTextSequence, ChineseWord } from '../lib/chinese-utils';
-import ParagraphBreakdown from '../components/ParagraphBreakdown';
+import WordDefinition from '../components/WordDefinition';
 import Link from 'next/link';
 
 export default function Home() {
   const [markdownContent, setMarkdownContent] = useState('');
   const [showPasteArea, setShowPasteArea] = useState(true);
-  const [selectedParagraphWords, setSelectedParagraphWords] = useState<ChineseWord[] | null>(null);
-  const [showBreakdown, setShowBreakdown] = useState(false);
-  const [highlightedMarkdown, setHighlightedMarkdown] = useState('');
+  const [selectedWord, setSelectedWord] = useState<ChineseWord | null>(null);
+  const [showWordDefinition, setShowWordDefinition] = useState(false);
+  const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const selectedParagraphRef = useRef<HTMLElement | null>(null);
-  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
   const [isLoadingPractice, setIsLoadingPractice] = useState(false);
 
   const turndownService = new TurndownService({
@@ -24,72 +22,64 @@ export default function Home() {
     codeBlockStyle: 'fenced'
   });
   const clearAllHighlights = () => {
-    setHighlightedMarkdown('');
+    setHighlightedWord(null);
   };
 
-  const highlightAllWordOccurrences = (word: string) => {
-    const content = markdownContent;
-    let currentIndex = 0;
-    let occurrenceCount = 0;
-    let highlightedContent = '';
-    let lastProcessedIndex = 0;
-    
-    // Find all occurrences and highlight them
-    while (true) {
-      const idx = content.indexOf(word, currentIndex);
-      if (idx === -1) {
-        // Add remaining content
-        highlightedContent += content.slice(lastProcessedIndex);
-        break;
+  // String-based highlighter removed in favor of state-driven highlighting
+
+  const handleWordClick = (word: ChineseWord) => {
+    setSelectedWord(word);
+    setShowWordDefinition(true);
+    setHighlightedWord(word.word);
+  };
+
+  // Function to render Chinese text with clickable word spans
+  const renderChineseTextWithClickableWords = (text: string) => {
+    if (!text || !/[\u4e00-\u9fff]/.test(text)) {
+      return text;
+    }
+
+    const words = processChineseTextSequence(text);
+    const elements: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    words.forEach((word, index) => {
+      const wordStart = text.indexOf(word.word, lastIndex);
+      
+      // Add any text before this word
+      if (wordStart > lastIndex) {
+        elements.push(text.slice(lastIndex, wordStart));
       }
       
-      // Add content before this occurrence
-      highlightedContent += content.slice(lastProcessedIndex, idx);
+      // Add the clickable word span
+      elements.push(
+        <span
+          key={`word-${index}-${word.word}`}
+          className={`cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === word.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-black' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleWordClick(word);
+          }}
+          title={`${word.pinyin || ''} - ${word.english || 'No translation'}`}
+        >
+          {word.word}
+        </span>
+      );
       
-      // Use same highlight style for all occurrences
-      const highlightStyle = 'background-color: #fde047; border: 2px solid #f59e0b; border-radius: 4px; padding: 2px 4px; margin: 0 1px; font-weight: bold; color: #000;';
-      
-      // Add highlighted word
-      highlightedContent += `<span class="hr-highlight" style="${highlightStyle}">${word}</span>`;
-      
-      lastProcessedIndex = idx + word.length;
-      currentIndex = idx + word.length;
-      occurrenceCount++;
+      lastIndex = wordStart + word.word.length;
+    });
+
+    // Add any remaining text
+    if (lastIndex < text.length) {
+      elements.push(text.slice(lastIndex));
     }
-    
-    if (occurrenceCount > 0) {
-      setHighlightedMarkdown(highlightedContent);
-      return true;
-    }
-    
-    console.warn(`Could not find any occurrences of word "${word}"`);
-    return false;
+
+    return elements;
   };
 
-  const handleParagraphClick = (e: React.MouseEvent<HTMLElement>) => {
-    // Avoid triggering on interactive elements or when user is selecting text
-    const target = e.target as HTMLElement;
-    if (target && target.closest('a, button, input, textarea, select, code, pre')) {
-      return;
-    }
-    const selectedText = typeof window !== 'undefined' ? window.getSelection()?.toString() : '';
-    if (selectedText && selectedText.trim().length > 0) {
-      return;
-    }
-
-    const text = (e.currentTarget as HTMLElement).innerText || '';
-    if (!text.trim()) return;
-    if (!/[\u4e00-\u9fff]/.test(text)) return;
-    const words = processChineseTextSequence(text);
-    setSelectedParagraphWords(words);
-    setShowBreakdown(true);
-    selectedParagraphRef.current = e.currentTarget as HTMLElement;
-    clearAllHighlights();
-  };
-
-  const handleCloseBreakdown = () => {
-    setShowBreakdown(false);
-    setSelectedParagraphWords(null);
+  const handleCloseWordDefinition = () => {
+    setShowWordDefinition(false);
+    setSelectedWord(null);
     clearAllHighlights();
   };
 
@@ -258,54 +248,39 @@ export default function Home() {
                 rehypePlugins={[rehypeRaw]}
                 components={{
 
-                  h1: ({children}) => (
-                    <h1
-                      className="text-4xl font-bold mb-8 text-black border-b-2 border-gray-200 pb-4 leading-tight"
-                      onClick={handleParagraphClick}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                  h1: ({children}) => {
+                    const text = typeof children === 'string' ? children : '';
+                    return (
+                      <h1 className="text-4xl font-bold mb-8 text-black border-b-2 border-gray-200 pb-4 leading-tight">
+                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
+                          ? renderChineseTextWithClickableWords(text)
+                          : children
                         }
-                      }}
-                    >
-                      {children}
-                    </h1>
-                  ),
-                  h2: ({children}) => (
-                    <h2
-                      className="text-3xl font-bold mb-6 mt-8 text-black border-b border-gray-200 pb-2 leading-tight"
-                      onClick={handleParagraphClick}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                      </h1>
+                    );
+                  },
+                  h2: ({children}) => {
+                    const text = typeof children === 'string' ? children : '';
+                    return (
+                      <h2 className="text-3xl font-bold mb-6 mt-8 text-black border-b border-gray-200 pb-2 leading-tight">
+                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
+                          ? renderChineseTextWithClickableWords(text)
+                          : children
                         }
-                      }}
-                    >
-                      {children}
-                    </h2>
-                  ),
-                  h3: ({children}) => (
-                    <h3
-                      className="text-2xl font-bold mb-4 mt-6 text-gray-700 leading-tight"
-                      onClick={handleParagraphClick}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                      </h2>
+                    );
+                  },
+                  h3: ({children}) => {
+                    const text = typeof children === 'string' ? children : '';
+                    return (
+                      <h3 className="text-2xl font-bold mb-4 mt-6 text-gray-700 leading-tight">
+                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
+                          ? renderChineseTextWithClickableWords(text)
+                          : children
                         }
-                      }}
-                    >
-                      {children}
-                    </h3>
-                  ),
+                      </h3>
+                    );
+                  },
                   h4: ({children}) => (
                     <h4 className="text-xl font-semibold mb-3 mt-5 text-gray-700 leading-tight">
                       {children}
@@ -321,22 +296,17 @@ export default function Home() {
                       {children}
                     </h6>
                   ),
-                  p: ({children}) => (
-                    <p
-                      className="mb-6 text-black leading-relaxed text-lg cursor-pointer select-none active:bg-amber-50 rounded-md p-1 -m-1"
-                      onClick={handleParagraphClick}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                  p: ({children}) => {
+                    const text = typeof children === 'string' ? children : '';
+                    return (
+                      <p className="mb-6 text-black leading-relaxed text-lg rounded-md p-1 -m-1">
+                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
+                          ? renderChineseTextWithClickableWords(text)
+                          : children
                         }
-                      }}
-                    >
-                      {children}
-                    </p>
-                  ),
+                      </p>
+                    );
+                  },
                   ul: ({children}) => (
                     <ul className="list-none mb-6 space-y-2 pl-4">
                       {children}
@@ -347,22 +317,17 @@ export default function Home() {
                       {children}
                     </ol>
                   ),
-                  li: ({children}) => (
-                    <li
-                      className="text-lg leading-relaxed relative pl-6 before:content-['•'] before:absolute before:left-0 before:text-blue-500 before:font-bold before:text-xl cursor-pointer select-none active:bg-amber-50 rounded-md p-1 -m-1"
-                      onClick={handleParagraphClick}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                  li: ({children}) => {
+                    const text = typeof children === 'string' ? children : '';
+                    return (
+                      <li className="text-lg leading-relaxed relative pl-6 before:content-['•'] before:absolute before:left-0 before:text-blue-500 before:font-bold before:text-xl rounded-md p-1 -m-1">
+                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
+                          ? renderChineseTextWithClickableWords(text)
+                          : children
                         }
-                      }}
-                    >
-                      {children}
-                    </li>
-                  ),
+                      </li>
+                    );
+                  },
                   code: ({children}) => (
                     <code className="bg-gray-100 border border-gray-200 px-2 py-1 rounded-md text-sm font-mono text-purple-700 font-medium">
                       {children}
@@ -373,22 +338,17 @@ export default function Home() {
                       {children}
                     </pre>
                   ),
-                  blockquote: ({children}) => (
-                    <blockquote
-                      className="border-l-4 border-blue-400 pl-6 pr-4 py-4 mb-6 bg-blue-50 rounded-r-lg italic text-gray-700 text-lg shadow-sm cursor-pointer select-none active:bg-amber-50"
-                      onClick={handleParagraphClick}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                  blockquote: ({children}) => {
+                    const text = typeof children === 'string' ? children : '';
+                    return (
+                      <blockquote className="border-l-4 border-blue-400 pl-6 pr-4 py-4 mb-6 bg-blue-50 rounded-r-lg italic text-gray-700 text-lg shadow-sm">
+                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
+                          ? renderChineseTextWithClickableWords(text)
+                          : children
                         }
-                      }}
-                    >
-                      {children}
-                    </blockquote>
-                  ),
+                      </blockquote>
+                    );
+                  },
                   a: ({href, children}) => (
                     <a 
                       href={href} 
@@ -453,31 +413,17 @@ export default function Home() {
                   ),
                 }}
               >
-                {highlightedMarkdown || markdownContent}
+                {markdownContent}
               </ReactMarkdown>              
             </div>
           </div>
         )}
         
-        {/* Paragraph Breakdown Bottom Sheet */}
-        <ParagraphBreakdown
-          words={selectedParagraphWords}
-          isVisible={showBreakdown}
-          onClose={handleCloseBreakdown}
-          onWordClick={(word) => {
-            // Handle highlight + scroll
-            const paragraphEl = selectedParagraphRef.current;
-            if (!paragraphEl || !selectedParagraphWords) return;
-            
-            // Prevent double execution with a small delay
-            if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
-            highlightTimeoutRef.current = setTimeout(() => {
-              // Clear existing highlights
-              clearAllHighlights();
-                            
-              highlightAllWordOccurrences(word.word);              
-            }, 10);
-          }}
+        {/* Word Definition Bottom Sheet */}
+        <WordDefinition
+          word={selectedWord}
+          isVisible={showWordDefinition}
+          onClose={handleCloseWordDefinition}
         />
       </div>
       
