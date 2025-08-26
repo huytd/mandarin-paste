@@ -17,6 +17,7 @@ export default function Home() {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const selectedParagraphRef = useRef<HTMLElement | null>(null);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [isLoadingPractice, setIsLoadingPractice] = useState(false);
 
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -174,6 +175,28 @@ export default function Home() {
 
 
 
+  const handlePracticeRandomRead = async () => {
+    try {
+      setIsLoadingPractice(true);
+      const res = await fetch('/api/learning', { method: 'POST' });
+      if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+      const data = await res.json();
+      const content = data?.summary || '';
+      if (content) {
+        setMarkdownContent(content);
+        setShowPasteArea(false);
+        clearAllHighlights();
+      } else {
+        alert('No content received from the learning API.');
+      }
+    } catch (error) {
+      console.error('Failed to fetch practice content:', error);
+      alert('Failed to fetch practice content. Please try again.');
+    } finally {
+      setIsLoadingPractice(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
@@ -216,6 +239,16 @@ export default function Home() {
                 </button>
               </div>
             </div>
+            <hr className="my-8 border-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={handlePracticeRandomRead}
+                disabled={isLoadingPractice}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xl"
+              >
+                {isLoadingPractice ? 'Loading…' : '📰 今天的新闻'}
+              </button>
+            </div>
           </div>
         ) : (
           // Rendered Content Area
@@ -226,17 +259,50 @@ export default function Home() {
                 components={{
 
                   h1: ({children}) => (
-                    <h1 className="text-4xl font-bold mb-8 text-black border-b-2 border-gray-200 pb-4 leading-tight">
+                    <h1
+                      className="text-4xl font-bold mb-8 text-black border-b-2 border-gray-200 pb-4 leading-tight"
+                      onClick={handleParagraphClick}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                        }
+                      }}
+                    >
                       {children}
                     </h1>
                   ),
                   h2: ({children}) => (
-                    <h2 className="text-3xl font-bold mb-6 mt-8 text-black border-b border-gray-200 pb-2 leading-tight">
+                    <h2
+                      className="text-3xl font-bold mb-6 mt-8 text-black border-b border-gray-200 pb-2 leading-tight"
+                      onClick={handleParagraphClick}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                        }
+                      }}
+                    >
                       {children}
                     </h2>
                   ),
                   h3: ({children}) => (
-                    <h3 className="text-2xl font-bold mb-4 mt-6 text-gray-700 leading-tight">
+                    <h3
+                      className="text-2xl font-bold mb-4 mt-6 text-gray-700 leading-tight"
+                      onClick={handleParagraphClick}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleParagraphClick(e as unknown as React.MouseEvent<HTMLElement>);
+                        }
+                      }}
+                    >
                       {children}
                     </h3>
                   ),
