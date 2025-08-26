@@ -33,6 +33,17 @@ export default function Home() {
     setHighlightedWord(word.word);
   };
 
+  // Mobile-friendly activation helpers
+  const handleWordKeyDown = (word: ChineseWord) => (
+    e: React.KeyboardEvent<HTMLSpanElement>
+  ) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleWordClick(word);
+    }
+  };
+
   // Function to render Chinese text with clickable word spans
   const renderChineseTextWithClickableWords = (text: string) => {
     if (!text || !/[\u4e00-\u9fff]/.test(text)) {
@@ -55,11 +66,14 @@ export default function Home() {
       elements.push(
         <span
           key={`word-${index}-${word.word}`}
-          className={`cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === word.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-black' : ''}`}
-          onClick={(e) => {
+          role="button"
+          tabIndex={0}
+          className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === word.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-black' : ''}`}
+          onPointerUp={(e) => {
             e.stopPropagation();
             handleWordClick(word);
           }}
+          onKeyDown={handleWordKeyDown(word)}
           title={`${word.pinyin || ''} - ${word.english || 'No translation'}`}
         >
           {word.word}
