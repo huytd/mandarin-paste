@@ -1,5 +1,23 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const cedictData = require('cedict-json');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const hanzi = require('hanzi');
+
+// Initialize hanzi (you only need to do this once)
+let hanziInitialized = false;
+function initializeHanzi() {
+  if (!hanziInitialized) {
+    hanzi.start();
+    hanziInitialized = true;
+  }
+}
+
+// Interface for radical decomposition data
+export interface RadicalDecomposition {
+  character: string;
+  components: string[];
+  level: 1 | 2 | 3; // 1=once, 2=radical, 3=graphical
+}
 
 // Performance optimization: Create efficient lookup maps
 const simplifiedMap = new Map<string, DictEntry[]>();
@@ -120,12 +138,34 @@ function lookupWord(word: string): DictEntry[] {
   }
 }
 
+// Function to get radical decomposition of a character
+export function getRadicalDecomposition(character: string, level: 1 | 2 | 3 = 2): RadicalDecomposition | null {
+  try {
+    initializeHanzi();
+    
+    const decomposition = hanzi.decompose(character, level);
+    if (!decomposition || !decomposition.components) {
+      return null;
+    }
+    
+    return {
+      character,
+      components: decomposition.components.filter((comp: string) => comp !== 'No glyph available'),
+      level
+    };
+  } catch (error) {
+    console.error('Error decomposing character:', character, error);
+    return null;
+  }
+}
+
 export interface ChineseWord {
   word: string;
   pinyin: string;
   english: string | null;
   startIndex?: number;
   endIndex?: number;
+  radicals?: RadicalDecomposition[];
 }
 
 export function segmentChineseText(text: string): string[] {
@@ -392,16 +432,26 @@ export function processChineseText(text: string): ChineseWord[] {
   const words = segmentChineseText(text);
   const uniqueWords = [...new Set(words)];
   
-  // Process each word to get pinyin and translation
+  // Process each word to get pinyin, translation, and radicals
   const processedWords: ChineseWord[] = [];
   
   for (const word of uniqueWords) {
     const wordData = getWordData(word);
     if (wordData.pinyin || wordData.english) {
+      // Get radical decomposition for each character in the word
+      const radicals: RadicalDecomposition[] = [];
+      for (const char of word) {
+        const decomp = getRadicalDecomposition(char);
+        if (decomp) {
+          radicals.push(decomp);
+        }
+      }
+      
       processedWords.push({
         word,
         pinyin: wordData.pinyin,
-        english: wordData.english
+        english: wordData.english,
+        radicals: radicals.length > 0 ? radicals : undefined
       });
     }
   }
