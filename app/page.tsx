@@ -68,7 +68,7 @@ export default function Home() {
           key={`word-${index}-${word.word}`}
           role="button"
           tabIndex={0}
-          className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === word.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-black' : ''}`}
+          className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === word.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
           onPointerUp={(e) => {
             e.stopPropagation();
             handleWordClick(word);
@@ -202,27 +202,27 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-background text-foreground p-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+        <h1 className="text-3xl font-bold text-foreground mb-8 text-center">
           <Link href="/">中文粘贴</Link>
         </h1>
         {showPasteArea ? (
           // Unified Paste Area
-          <div className="bg-white rounded-lg shadow-md p-8">
+          <div className="bg-background rounded-lg shadow-md p-8">
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">📋</div>
-              <h2 className="text-2xl font-bold text-gray-700 mb-3">
+              <h2 className="text-2xl font-bold text-foreground mb-3">
                 Paste or Type Your Content
               </h2>
-              <p className="text-gray-500 mb-6">
+              <p className="text-foreground/60 mb-6">
                 Paste HTML or Markdown content, or type directly in the box below
               </p>
             </div>
             
             <div className="space-y-4">
               <textarea
-                className="w-full h-64 p-6 border-2 border-dashed border-gray-300 rounded-xl resize-vertical focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400 transition-all text-lg leading-relaxed"
+                className="w-full h-64 p-6 border-2 border-dashed border-foreground/20 rounded-xl resize-vertical focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-400 transition-all text-lg leading-relaxed bg-background text-foreground placeholder:text-foreground/50"
                 placeholder="Supports both HTML and Markdown formats!"
                 onChange={handleTextareaChange}
                 onPaste={handlePaste}
@@ -230,14 +230,14 @@ export default function Home() {
               />
               
               <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <p className="text-sm text-gray-500 flex-1">
+                <p className="text-sm text-foreground/60 flex-1">
                    { '💡 Click the text area above to start pasting or typing content.' }
                 </p>
                 
                 {/* Optional manual paste button for devices where clipboard access might be restricted */}
                 <button
                   onClick={handleManualPaste}
-                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors text-sm font-medium"
                 >
                   📋 Try Auto-Paste
                 </button>
@@ -256,7 +256,7 @@ export default function Home() {
           </div>
         ) : (
           // Rendered Content Area
-          <div className="bg-white rounded-lg shadow-md">
+          <div className="bg-background rounded-lg shadow-md">
             <div className="p-8 max-w-none" ref={contentRef}>
               <ReactMarkdown 
                 rehypePlugins={[rehypeRaw]}
@@ -265,7 +265,7 @@ export default function Home() {
                   h1: ({children}) => {
                     const text = typeof children === 'string' ? children : '';
                     return (
-                      <h1 className="text-4xl font-bold mb-8 text-black border-b-2 border-gray-200 pb-4 leading-tight">
+                      <h1 className="text-4xl font-bold mb-8 text-foreground border-b-2 border-foreground/20 pb-4 leading-tight">
                         {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
                           ? renderChineseTextWithClickableWords(text)
                           : children
@@ -276,7 +276,7 @@ export default function Home() {
                   h2: ({children}) => {
                     const text = typeof children === 'string' ? children : '';
                     return (
-                      <h2 className="text-3xl font-bold mb-6 mt-8 text-black border-b border-gray-200 pb-2 leading-tight">
+                      <h2 className="text-3xl font-bold mb-6 mt-8 text-foreground border-b border-foreground/20 pb-2 leading-tight">
                         {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
                           ? renderChineseTextWithClickableWords(text)
                           : children
@@ -287,7 +287,7 @@ export default function Home() {
                   h3: ({children}) => {
                     const text = typeof children === 'string' ? children : '';
                     return (
-                      <h3 className="text-2xl font-bold mb-4 mt-6 text-gray-700 leading-tight">
+                      <h3 className="text-2xl font-bold mb-4 mt-6 text-foreground/80 leading-tight">
                         {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
                           ? renderChineseTextWithClickableWords(text)
                           : children
@@ -296,24 +296,24 @@ export default function Home() {
                     );
                   },
                   h4: ({children}) => (
-                    <h4 className="text-xl font-semibold mb-3 mt-5 text-gray-700 leading-tight">
+                    <h4 className="text-xl font-semibold mb-3 mt-5 text-foreground/80 leading-tight">
                       {children}
                     </h4>
                   ),
                   h5: ({children}) => (
-                    <h5 className="text-lg font-semibold mb-2 mt-4 text-gray-700 leading-tight">
+                    <h5 className="text-lg font-semibold mb-2 mt-4 text-foreground/80 leading-tight">
                       {children}
                     </h5>
                   ),
                   h6: ({children}) => (
-                    <h6 className="text-base font-semibold mb-2 mt-3 text-gray-700 leading-tight">
+                    <h6 className="text-base font-semibold mb-2 mt-3 text-foreground/80 leading-tight">
                       {children}
                     </h6>
                   ),
                   p: ({children}) => {
                     const text = typeof children === 'string' ? children : '';
                     return (
-                      <p className="mb-6 text-black leading-relaxed text-lg rounded-md p-1 -m-1">
+                      <p className="mb-6 text-foreground leading-relaxed text-lg rounded-md p-1 -m-1">
                         {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
                           ? renderChineseTextWithClickableWords(text)
                           : children
@@ -327,7 +327,7 @@ export default function Home() {
                     </ul>
                   ),
                   ol: ({children}) => (
-                    <ol className="list-decimal list-outside mb-6 space-y-2 pl-8 text-black">
+                    <ol className="list-decimal list-outside mb-6 space-y-2 pl-8 text-foreground">
                       {children}
                     </ol>
                   ),
@@ -355,7 +355,7 @@ export default function Home() {
                   blockquote: ({children}) => {
                     const text = typeof children === 'string' ? children : '';
                     return (
-                      <blockquote className="border-l-4 border-blue-400 pl-6 pr-4 py-4 mb-6 bg-blue-50 rounded-r-lg italic text-gray-700 text-lg shadow-sm">
+                      <blockquote className="border-l-4 border-foreground/30 pl-6 pr-4 py-4 mb-6 bg-foreground/5 rounded-r-lg italic text-foreground/80 text-lg shadow-sm">
                         {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
                           ? renderChineseTextWithClickableWords(text)
                           : children
@@ -366,7 +366,7 @@ export default function Home() {
                   a: ({href, children}) => (
                     <a 
                       href={href} 
-                      className="text-blue-600 hover:text-blue-800 underline decoration-2 underline-offset-2 hover:decoration-blue-800 transition-colors font-medium" 
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline decoration-2 underline-offset-2 hover:decoration-blue-800 transition-colors font-medium" 
                       target="_blank" 
                       rel="noopener noreferrer"
                     >
@@ -374,44 +374,44 @@ export default function Home() {
                     </a>
                   ),
                   strong: ({children}) => (
-                    <strong className="font-bold text-black bg-yellow-100 px-1 rounded">
+                    <strong className="font-bold text-foreground bg-yellow-100 px-1 rounded">
                       {children}
                     </strong>
                   ),
                   em: ({children}) => (
-                    <em className="italic text-gray-700 font-medium">
+                    <em className="italic text-foreground/80 font-medium">
                       {children}
                     </em>
                   ),
                   table: ({children}) => (
                     <div className="mb-6 overflow-x-auto shadow-lg rounded-lg">
-                      <table className="min-w-full border-collapse bg-white">
+                      <table className="min-w-full border-collapse bg-background">
                         {children}
                       </table>
                     </div>
                   ),
                   thead: ({children}) => (
-                    <thead className="bg-gray-50">
+                    <thead className="bg-foreground/[0.04]">
                       {children}
                     </thead>
                   ),
                   tbody: ({children}) => (
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-foreground/20">
                       {children}
                     </tbody>
                   ),
                   th: ({children}) => (
-                    <th className="border border-gray-200 px-6 py-4 bg-gray-100 font-bold text-left text-black text-sm uppercase tracking-wider">
+                    <th className="border border-foreground/20 px-6 py-4 bg-foreground/[0.06] font-bold text-left text-foreground text-sm uppercase tracking-wider">
                       {children}
                     </th>
                   ),
                   td: ({children}) => (
-                    <td className="border border-gray-200 px-6 py-4 text-black text-sm">
+                    <td className="border border-foreground/20 px-6 py-4 text-foreground text-sm">
                       {children}
                     </td>
                   ),
                   tr: ({children}) => (
-                    <tr className="hover:bg-gray-50 transition-colors">
+                    <tr className="hover:bg-foreground/5 transition-colors">
                       {children}
                     </tr>
                   ),
@@ -419,7 +419,7 @@ export default function Home() {
                     <img 
                       src={src} 
                       alt={alt} 
-                      className="max-w-full h-auto rounded-xl shadow-lg mb-6 border border-gray-200" 
+                      className="max-w-full h-auto rounded-xl shadow-lg mb-6 border border-foreground/20" 
                     />
                   ),
                   hr: () => (
