@@ -78,8 +78,47 @@ const WordDefinition = React.memo(function WordDefinition({
             
             {/* No definition available */}
             {!word.english && (
-              <div className="text-gray-500 italic">
+              <div className="text-gray-500 italic mb-4">
                 No definition available
+              </div>
+            )}
+            
+            {/* Radical composition display */}
+            {word.radicals && word.radicals.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-amber-300">
+                <div className="text-sm font-semibold text-gray-700 mb-3">
+                  Character Structure & Radicals:
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {word.radicals.map((radical, radicalIndex) => (
+                    <div key={radicalIndex} className="bg-white border border-amber-200 rounded-lg p-3 shadow-sm">
+                      <div className="text-lg font-bold text-gray-800 mb-2 text-center">
+                        {radical.character}
+                      </div>
+                      <div className="space-y-1">
+                        {radical.components.map((comp, compIndex) => (
+                          <div key={compIndex} className="flex items-center gap-2 text-sm">
+                            <span className="text-xl text-green-700 font-medium min-w-[24px] text-center">
+                              {comp.radical}
+                            </span>
+                            <div className="flex flex-col text-xs">
+                              {comp.pinyin && (
+                                <span className="text-blue-600 font-medium">
+                                  {comp.pinyin}
+                                </span>
+                              )}
+                              {comp.meaning && (
+                                <span className="text-gray-600">
+                                  {comp.meaning}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

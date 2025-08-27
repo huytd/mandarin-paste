@@ -12,10 +12,17 @@ function initializeHanzi() {
   }
 }
 
+// Interface for individual radical component
+export interface RadicalComponent {
+  radical: string;
+  pinyin?: string;
+  meaning?: string;
+}
+
 // Interface for radical decomposition data
 export interface RadicalDecomposition {
   character: string;
-  components: string[];
+  components: RadicalComponent[];
   level: 1 | 2 | 3; // 1=once, 2=radical, 3=graphical
 }
 
@@ -138,7 +145,17 @@ function lookupWord(word: string): DictEntry[] {
   }
 }
 
-// Function to get radical decomposition of a character
+// Function to get radical meaning using hanzi package
+function getRadicalMeaning(radical: string): string | undefined {
+  try {
+    initializeHanzi();
+    return hanzi.getRadicalMeaning?.(radical) || undefined;
+  } catch (error) {
+    return undefined;
+  }
+}
+
+// Function to get radical decomposition of a character with enhanced info
 export function getRadicalDecomposition(character: string, level: 1 | 2 | 3 = 2): RadicalDecomposition | null {
   try {
     initializeHanzi();
@@ -148,9 +165,23 @@ export function getRadicalDecomposition(character: string, level: 1 | 2 | 3 = 2)
       return null;
     }
     
+    const filteredComponents = decomposition.components.filter((comp: string) => comp !== 'No glyph available');
+    
+    // Get enhanced info for each radical component
+    const enhancedComponents: RadicalComponent[] = filteredComponents.map((radical: string) => {
+      const radicalData = getWordData(radical);
+      const meaning = getRadicalMeaning(radical);
+      
+      return {
+        radical,
+        pinyin: radicalData.pinyin || undefined,
+        meaning: meaning || radicalData.english || undefined
+      };
+    });
+    
     return {
       character,
-      components: decomposition.components.filter((comp: string) => comp !== 'No glyph available'),
+      components: enhancedComponents,
       level
     };
   } catch (error) {
