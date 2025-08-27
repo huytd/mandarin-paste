@@ -16,6 +16,8 @@ export default function Home() {
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [isLoadingPractice, setIsLoadingPractice] = useState(false);
+  const [allWordsInText, setAllWordsInText] = useState<ChineseWord[]>([]);
+  const [currentWordIndex, setCurrentWordIndex] = useState(-1);
 
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -28,9 +30,37 @@ export default function Home() {
   // String-based highlighter removed in favor of state-driven highlighting
 
   const handleWordClick = (word: ChineseWord) => {
+    // Extract all words from the current markdown content
+    const { words } = processChineseTextWithPositions(markdownContent);
+    const uniqueWords = words.filter((w, index, self) => 
+      self.findIndex(sw => sw.word === w.word) === index
+    );
+    
+    setAllWordsInText(uniqueWords);
+    const wordIndex = uniqueWords.findIndex(w => w.word === word.word);
+    setCurrentWordIndex(wordIndex);
+    
     setSelectedWord(word);
     setShowWordDefinition(true);
     setHighlightedWord(word.word);
+  };
+
+  const handleNavigateWord = (direction: 'prev' | 'next') => {
+    if (allWordsInText.length === 0) return;
+    
+    let newIndex = currentWordIndex;
+    if (direction === 'prev' && currentWordIndex > 0) {
+      newIndex = currentWordIndex - 1;
+    } else if (direction === 'next' && currentWordIndex < allWordsInText.length - 1) {
+      newIndex = currentWordIndex + 1;
+    }
+    
+    if (newIndex !== currentWordIndex) {
+      const newWord = allWordsInText[newIndex];
+      setCurrentWordIndex(newIndex);
+      setSelectedWord(newWord);
+      setHighlightedWord(newWord.word);
+    }
   };
 
   // Mobile-friendly activation helpers
@@ -111,6 +141,8 @@ export default function Home() {
   const handleCloseWordDefinition = () => {
     setShowWordDefinition(false);
     setSelectedWord(null);
+    setAllWordsInText([]);
+    setCurrentWordIndex(-1);
     clearAllHighlights();
   };
 
@@ -459,6 +491,9 @@ export default function Home() {
           word={selectedWord}
           isVisible={showWordDefinition}
           onClose={handleCloseWordDefinition}
+          allWords={allWordsInText}
+          currentWordIndex={currentWordIndex}
+          onNavigate={handleNavigateWord}
         />
       </div>
       
