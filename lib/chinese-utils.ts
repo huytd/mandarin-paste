@@ -1,6 +1,34 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const cedictData = require('cedict-json');
 
+// Performance optimization: Create efficient lookup maps
+const simplifiedMap = new Map<string, DictEntry[]>();
+const traditionalMap = new Map<string, DictEntry[]>();
+const wordCache = new Map<string, { pinyin: string; english: string | null }>();
+const segmentationCache = new Map<string, string[]>();
+const processedTextCache = new Map<string, ChineseWord[]>();
+
+// Initialize lookup maps for better performance
+function initializeLookupMaps() {
+  if (simplifiedMap.size > 0) return; // Already initialized
+
+  (cedictData as DictEntry[]).forEach((entry: DictEntry) => {
+    // Add to simplified map
+    if (!simplifiedMap.has(entry.simplified)) {
+      simplifiedMap.set(entry.simplified, []);
+    }
+    simplifiedMap.get(entry.simplified)!.push(entry);
+
+    // Add to traditional map if different
+    if (entry.traditional !== entry.simplified) {
+      if (!traditionalMap.has(entry.traditional)) {
+        traditionalMap.set(entry.traditional, []);
+      }
+      traditionalMap.get(entry.traditional)!.push(entry);
+    }
+  });
+}
+
 // Tone mark conversion mappings
 const toneMap: { [key: string]: { [tone: string]: string } } = {
   'a': { '1': 'ā', '2': 'á', '3': 'ǎ', '4': 'à', '5': 'a' },
@@ -66,13 +94,26 @@ interface DictEntry {
   english: string[];
 }
 
-// Simple dictionary interface using cedict-json
+// Optimized dictionary lookup using pre-built maps
 function lookupWord(word: string): DictEntry[] {
   try {
-    // cedict-json provides an array of entries, we filter by simplified or traditional
-    return (cedictData as DictEntry[]).filter((entry: DictEntry) => 
-      entry.simplified === word || entry.traditional === word
-    );
+    initializeLookupMaps(); // Ensure maps are initialized
+
+    const results: DictEntry[] = [];
+
+    // Check simplified map
+    const simplifiedEntries = simplifiedMap.get(word);
+    if (simplifiedEntries) {
+      results.push(...simplifiedEntries);
+    }
+
+    // Check traditional map if different from simplified
+    const traditionalEntries = traditionalMap.get(word);
+    if (traditionalEntries) {
+      results.push(...traditionalEntries);
+    }
+
+    return results;
   } catch (error) {
     console.error('Error looking up word:', word, error);
     return [];
@@ -83,6 +124,8 @@ export interface ChineseWord {
   word: string;
   pinyin: string;
   english: string | null;
+  startIndex?: number;
+  endIndex?: number;
 }
 
 export function segmentChineseText(text: string): string[] {
@@ -137,6 +180,12 @@ export function segmentChineseText(text: string): string[] {
 
 // Segment Chinese text preserving order and duplicates (token sequence)
 export function segmentChineseTextToSequence(text: string): string[] {
+  // Check cache first
+  const cached = segmentationCache.get(text);
+  if (cached) {
+    return cached;
+  }
+
   try {
     const textWithSpaces = text.replace(/[""''《》「」【】『』()（）\[\]{}【】、，。；：！？]+/g, ' ');
     const chineseSequences = textWithSpaces.match(/[\u4e00-\u9fff]+/g) || [];
@@ -169,15 +218,25 @@ export function segmentChineseTextToSequence(text: string): string[] {
       }
     }
 
+    // Cache the result
+    segmentationCache.set(text, words);
     return words;
   } catch (error) {
     console.error('Error segmenting (sequence) Chinese text:', error);
-    return text.match(/[\u4e00-\u9fff]/g) || [];
+    const fallback = text.match(/[\u4e00-\u9fff]/g) || [];
+    segmentationCache.set(text, fallback);
+    return fallback;
   }
 }
 
 // Process Chinese text into a sequence of ChineseWord items (keeps duplicates)
 export function processChineseTextSequence(text: string): ChineseWord[] {
+  // Check cache first
+  const cached = processedTextCache.get(text);
+  if (cached) {
+    return cached;
+  }
+
   const tokens = segmentChineseTextToSequence(text);
   const processed: ChineseWord[] = [];
   for (const token of tokens) {
@@ -188,7 +247,97 @@ export function processChineseTextSequence(text: string): ChineseWord[] {
       english: data.english,
     });
   }
+
+  // Cache the result
+  processedTextCache.set(text, processed);
   return processed;
+}
+
+// Optimized function that processes Chinese text and returns words with positions
+export function processChineseTextWithPositions(text: string): { words: ChineseWord[], nonChineseParts: Array<{ text: string, startIndex: number, endIndex: number }> } {
+  const cacheKey = `positions_${text}`;
+  const cached = processedTextCache.get(cacheKey);
+  if (cached) {
+    return {
+      words: cached,
+      nonChineseParts: []
+    };
+  }
+
+  const words: ChineseWord[] = [];
+  const nonChineseParts: Array<{ text: string, startIndex: number, endIndex: number }> = [];
+
+  if (!text || !/[\u4e00-\u9fff]/.test(text)) {
+    return { words: [], nonChineseParts: [{ text, startIndex: 0, endIndex: text.length }] };
+  }
+
+  const tokens = segmentChineseTextToSequence(text);
+  let currentIndex = 0;
+
+  for (const token of tokens) {
+    // Find the token in the text
+    const tokenIndex = text.indexOf(token, currentIndex);
+    if (tokenIndex === -1) continue;
+
+    // Add any non-Chinese text before this token
+    if (tokenIndex > currentIndex) {
+      const nonChineseText = text.slice(currentIndex, tokenIndex);
+      if (nonChineseText) {
+        nonChineseParts.push({
+          text: nonChineseText,
+          startIndex: currentIndex,
+          endIndex: tokenIndex
+        });
+      }
+    }
+
+    // Add the Chinese word with position info
+    const data = getWordData(token);
+    words.push({
+      word: token,
+      pinyin: data.pinyin,
+      english: data.english,
+      startIndex: tokenIndex,
+      endIndex: tokenIndex + token.length
+    });
+
+    currentIndex = tokenIndex + token.length;
+  }
+
+  // Add any remaining text
+  if (currentIndex < text.length) {
+    const remainingText = text.slice(currentIndex);
+    if (remainingText) {
+      nonChineseParts.push({
+        text: remainingText,
+        startIndex: currentIndex,
+        endIndex: text.length
+      });
+    }
+  }
+
+  // Cache the words with positions
+  processedTextCache.set(cacheKey, words);
+
+  return { words, nonChineseParts };
+}
+
+// Cache management functions
+export function clearAllCaches() {
+  wordCache.clear();
+  segmentationCache.clear();
+  processedTextCache.clear();
+}
+
+export function clearContentCaches() {
+  // Clear segmentation and processed text caches, but keep word cache for performance
+  segmentationCache.clear();
+  // Clear only position-based caches
+  for (const [key] of processedTextCache) {
+    if (key.startsWith('positions_')) {
+      processedTextCache.delete(key);
+    }
+  }
 }
 
 export function getPinyin(word: string): string {
@@ -207,6 +356,12 @@ export function getPinyin(word: string): string {
 }
 
 export function getWordData(word: string): { pinyin: string; english: string | null } {
+  // Check cache first
+  const cached = wordCache.get(word);
+  if (cached) {
+    return cached;
+  }
+
   try {
     const entries = lookupWord(word);
     if (entries && entries.length > 0) {
@@ -214,16 +369,22 @@ export function getWordData(word: string): { pinyin: string; english: string | n
       const allEnglish = entries.map(entry => entry.english.join('; ')).join(' ');
       // Convert numbered pinyin to tone marks
       const convertedPinyin = convertPinyinTones(entry.pinyin);
-      return {
+      const result = {
         pinyin: convertedPinyin,
         english: allEnglish
       };
+
+      // Cache the result
+      wordCache.set(word, result);
+      return result;
     }
   } catch (error) {
     console.error('Error getting word data for:', word, error);
   }
-  
-  return { pinyin: '', english: null };
+
+  const emptyResult = { pinyin: '', english: null };
+  wordCache.set(word, emptyResult);
+  return emptyResult;
 }
 
 export function processChineseText(text: string): ChineseWord[] {

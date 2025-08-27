@@ -7,7 +7,7 @@ interface WordDefinitionProps {
   onClose: () => void;
 }
 
-export default function WordDefinition({ word, isVisible, onClose }: WordDefinitionProps) {
+const WordDefinition = React.memo(function WordDefinition({ word, isVisible, onClose }: WordDefinitionProps) {
   if (!isVisible || !word) {
     return null;
   }
@@ -70,4 +70,8 @@ export default function WordDefinition({ word, isVisible, onClose }: WordDefinit
       </div>
     </div>
   );
-}
+});
+
+WordDefinition.displayName = 'WordDefinition';
+
+export default WordDefinition;

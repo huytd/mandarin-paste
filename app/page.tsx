@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import TurndownService from 'turndown';
-import { processChineseTextSequence, ChineseWord } from '../lib/chinese-utils';
+import { ChineseWord, processChineseTextWithPositions, clearContentCaches } from '../lib/chinese-utils';
 import WordDefinition from '../components/WordDefinition';
 import Link from 'next/link';
 
@@ -44,49 +44,66 @@ export default function Home() {
     }
   };
 
-  // Function to render Chinese text with clickable word spans
+  // Optimized function to render Chinese text with clickable word spans
   const renderChineseTextWithClickableWords = (text: string) => {
     if (!text || !/[\u4e00-\u9fff]/.test(text)) {
       return text;
     }
 
-    const words = processChineseTextSequence(text);
+    const { words, nonChineseParts } = processChineseTextWithPositions(text);
     const elements: React.ReactNode[] = [];
-    let lastIndex = 0;
 
-    words.forEach((word, index) => {
-      const wordStart = text.indexOf(word.word, lastIndex);
-      
-      // Add any text before this word
-      if (wordStart > lastIndex) {
-        elements.push(text.slice(lastIndex, wordStart));
+    // If no Chinese words found, return original text
+    if (words.length === 0) {
+      return text;
+    }
+
+    // Create typed parts array
+    type TextPart = { text: string; startIndex: number; endIndex: number; };
+    type ChineseWordPart = TextPart & { isChineseWord: true; wordData: ChineseWord; };
+    type Part = TextPart | ChineseWordPart;
+
+    const allParts: Part[] = [...nonChineseParts];
+    words.forEach(word => {
+      if (word.startIndex !== undefined) {
+        allParts.push({
+          text: word.word,
+          startIndex: word.startIndex,
+          endIndex: word.endIndex!,
+          isChineseWord: true,
+          wordData: word
+        } as ChineseWordPart);
       }
-      
-      // Add the clickable word span
-      elements.push(
-        <span
-          key={`word-${index}-${word.word}`}
-          role="button"
-          tabIndex={0}
-          className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === word.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
-          onPointerUp={(e) => {
-            e.stopPropagation();
-            handleWordClick(word);
-          }}
-          onKeyDown={handleWordKeyDown(word)}
-          title={`${word.pinyin || ''} - ${word.english || 'No translation'}`}
-        >
-          {word.word}
-        </span>
-      );
-      
-      lastIndex = wordStart + word.word.length;
     });
 
-    // Add any remaining text
-    if (lastIndex < text.length) {
-      elements.push(text.slice(lastIndex));
-    }
+    // Sort by start index
+    allParts.sort((a, b) => a.startIndex - b.startIndex);
+
+    allParts.forEach((part, index) => {
+      if ('isChineseWord' in part && part.isChineseWord) {
+        // This is a Chinese word
+        const wordData = part.wordData;
+        elements.push(
+          <span
+            key={`word-${index}-${wordData.word}`}
+            role="button"
+            tabIndex={0}
+            className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              handleWordClick(wordData);
+            }}
+            onKeyDown={handleWordKeyDown(wordData)}
+            title={`${wordData.pinyin || ''} - ${wordData.english || 'No translation'}`}
+          >
+            {wordData.word}
+          </span>
+        );
+      } else {
+        // This is non-Chinese text
+        elements.push(part.text);
+      }
+    });
 
     return elements;
   };
@@ -148,6 +165,7 @@ export default function Home() {
     if (finalMarkdown) {
       setMarkdownContent(finalMarkdown);
       setShowPasteArea(false);
+      clearContentCaches(); // Clear caches for new content
     }
   };
 
@@ -156,6 +174,7 @@ export default function Home() {
     if (content.trim()) {
       setMarkdownContent(content);
       setShowPasteArea(false);
+      clearContentCaches(); // Clear caches for new content
       // Clear the textarea for next use
       e.target.value = '';
     }
@@ -168,6 +187,7 @@ export default function Home() {
         if (text.trim()) {
           setMarkdownContent(text);
           setShowPasteArea(false);
+          clearContentCaches(); // Clear caches for new content
         }
       }
     } catch (error) {
@@ -190,6 +210,7 @@ export default function Home() {
         setMarkdownContent(content);
         setShowPasteArea(false);
         clearAllHighlights();
+        clearContentCaches(); // Clear caches for new content
       } else {
         alert('No content received from the learning API.');
       }
