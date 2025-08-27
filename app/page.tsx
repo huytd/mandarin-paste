@@ -4,8 +4,10 @@ import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import TurndownService from 'turndown';
-import { ChineseWord, processChineseTextWithPositions, clearContentCaches } from '../lib/chinese-utils';
+import { ChineseWord, processChineseTextWithPositions, clearContentCaches, processChineseText } from '../lib/chinese-utils';
 import WordDefinition from '../components/WordDefinition';
+import VocabularyList from '../components/VocabularyList';
+import FlashcardMode from '../components/FlashcardMode';
 import Link from 'next/link';
 
 export default function Home() {
@@ -18,6 +20,8 @@ export default function Home() {
   const [isLoadingPractice, setIsLoadingPractice] = useState(false);
   const [allWordsInText, setAllWordsInText] = useState<ChineseWord[]>([]);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
+  const [vocabularyWords, setVocabularyWords] = useState<ChineseWord[]>([]);
+  const [showFlashcards, setShowFlashcards] = useState(false);
 
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -198,6 +202,10 @@ export default function Home() {
       setMarkdownContent(finalMarkdown);
       setShowPasteArea(false);
       clearContentCaches(); // Clear caches for new content
+      
+      // Extract vocabulary words from the content
+      const words = processChineseText(finalMarkdown);
+      setVocabularyWords(words);
     }
   };
 
@@ -207,6 +215,11 @@ export default function Home() {
       setMarkdownContent(content);
       setShowPasteArea(false);
       clearContentCaches(); // Clear caches for new content
+      
+      // Extract vocabulary words from the content
+      const words = processChineseText(content);
+      setVocabularyWords(words);
+      
       // Clear the textarea for next use
       e.target.value = '';
     }
@@ -220,6 +233,10 @@ export default function Home() {
           setMarkdownContent(text);
           setShowPasteArea(false);
           clearContentCaches(); // Clear caches for new content
+          
+          // Extract vocabulary words from the content
+          const words = processChineseText(text);
+          setVocabularyWords(words);
         }
       }
     } catch (error) {
@@ -243,6 +260,10 @@ export default function Home() {
         setShowPasteArea(false);
         clearAllHighlights();
         clearContentCaches(); // Clear caches for new content
+        
+        // Extract vocabulary words from the content
+        const words = processChineseText(content);
+        setVocabularyWords(words);
       } else {
         alert('No content received from the learning API.');
       }
@@ -483,6 +504,13 @@ export default function Home() {
                 {markdownContent}
               </ReactMarkdown>              
             </div>
+            
+            {/* Vocabulary List */}
+            <VocabularyList 
+              words={vocabularyWords}
+              onWordClick={handleWordClick}
+              onStartFlashcards={() => setShowFlashcards(true)}
+            />
           </div>
         )}
         
@@ -494,6 +522,13 @@ export default function Home() {
           allWords={allWordsInText}
           currentWordIndex={currentWordIndex}
           onNavigate={handleNavigateWord}
+        />
+        
+        {/* Flashcard Mode */}
+        <FlashcardMode
+          words={vocabularyWords}
+          isVisible={showFlashcards}
+          onClose={() => setShowFlashcards(false)}
         />
       </div>
       
