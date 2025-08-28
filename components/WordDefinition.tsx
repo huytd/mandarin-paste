@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ChineseWord } from '../lib/chinese-utils';
+import { ChineseWord, getIndividualCharacterMeanings } from '../lib/chinese-utils';
 
 interface WordDefinitionProps {
   word: ChineseWord | null;
@@ -51,13 +51,15 @@ const WordDefinition = React.memo(function WordDefinition({
   const canNavigateForward = currentWordIndex < allWords.length - 1;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-amber-50 border-t-2 border-amber-200 shadow-lg transform transition-transform duration-300 ease-in-out z-50">
-      <div className="max-w-4xl mx-auto p-6" data-word-definition>
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
+    <div className="fixed bottom-0 left-0 right-0 bg-amber-50 border-t-2 border-amber-200 shadow-lg transform transition-transform duration-300 ease-in-out z-50 max-h-[80vh] overflow-hidden">
+      <div className="max-w-4xl mx-auto h-full flex flex-col" data-word-definition>
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
             <div className="flex items-center gap-4 mb-3">
               {/* Chinese Word */}
-              <div className="text-4xl font-bold text-gray-800">
+              <div className="text-xl font-bold text-gray-800">
                 {word.word}
               </div>
               
@@ -71,7 +73,7 @@ const WordDefinition = React.memo(function WordDefinition({
             
             {/* English Definition */}
             {word.english && (
-              <div className="text-lg text-gray-700 leading-relaxed mb-2">
+              <div className="text-base text-gray-700 leading-relaxed mb-2">
                 {word.english}
               </div>
             )}
@@ -83,8 +85,86 @@ const WordDefinition = React.memo(function WordDefinition({
               </div>
             )}
             
-            {/* Radical composition display */}
-            {word.radicals && word.radicals.length > 0 && (
+            {/* Individual character meanings for multi-character words */}
+            {word.word.length > 1 && (() => {
+              const characterMeanings = getIndividualCharacterMeanings(word.word);
+              // Show all characters that have pinyin or english, regardless of radical count
+              const filteredMeanings = characterMeanings.filter(char => 
+                char.pinyin || char.english
+              );
+              
+              if (filteredMeanings.length > 0) {
+                return (
+                  <div className="mt-4 pt-4 border-t border-amber-300">
+                    <div className="text-sm font-semibold text-gray-700 mb-3">
+                      Individual Character Meanings:
+                    </div>
+                                          <div className="space-y-3">
+                        {filteredMeanings.map((charData, index) => {
+                          // Get radical decomposition for this character
+                          const radicalDecomp = word.radicals?.find(r => r.character === charData.character);
+                          
+                          return (
+                            <div key={index}>
+                              <div className="flex items-start gap-3">
+                                <div className="text-xl font-bold text-gray-800 min-w-[32px]">
+                                  {charData.character}
+                                </div>
+                                <div className="flex-1">
+                                  {charData.pinyin && (
+                                    <div className="text-base text-blue-600 font-medium">
+                                      {charData.pinyin}
+                                    </div>
+                                  )}
+                                  {charData.english && (
+                                    <div className="text-sm text-gray-700">
+                                      {charData.english}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Radical breakdown for this character - only show if character has multiple radicals */}
+                                  {radicalDecomp && radicalDecomp.components.length > 1 && (
+                                    <div className="mt-1">
+                                      <div className="text-xs text-gray-500 mb-1">
+                                        Radicals: {radicalDecomp.components.map((comp, compIndex) => (
+                                          <span key={compIndex} className="ml-1">
+                                            <span className="text-green-600 font-medium">{comp.radical}</span>
+                                            {comp.pinyin && <span className="text-blue-500 ml-1">({comp.pinyin})</span>}
+                                            {comp.meaning && <span className="text-gray-600 ml-1">{comp.meaning}</span>}
+                                            {compIndex < radicalDecomp.components.length - 1 && <span className="text-gray-400">,</span>}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            
+            {/* Radical composition display - only show if no individual character meanings are displayed */}
+            {word.radicals && word.radicals.length > 0 && (() => {
+              // Check if we're showing individual character meanings
+              if (word.word.length > 1) {
+                const characterMeanings = getIndividualCharacterMeanings(word.word);
+                const hasFilteredMeanings = characterMeanings.filter(char => 
+                  char.hasMultipleRadicals && (char.pinyin || char.english)
+                ).length > 0;
+                
+                // If we have individual character meanings, don't show separate radical section
+                if (hasFilteredMeanings) {
+                  return null;
+                }
+              }
+              
+              return (
               <div className="mt-4 pt-4 border-t border-amber-300">
                 <div className="text-sm font-semibold text-gray-700 mb-3">
                   Character Structure & Radicals:
@@ -120,34 +200,36 @@ const WordDefinition = React.memo(function WordDefinition({
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-          
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="ml-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="Close definition"
-          >
-            <svg 
-              className="w-6 h-6" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+              );
+            })()}
+            </div>
+            
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="ml-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+              aria-label="Close definition"
             >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M6 18L18 6M6 6l12 12" 
-              />
-            </svg>
-          </button>
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M6 18L18 6M6 6l12 12" 
+                />
+              </svg>
+            </button>
+          </div>
         </div>
         
-        {/* Navigation buttons */}
+        {/* Navigation buttons - fixed at bottom */}
         {onNavigate && allWords.length > 1 && (
-          <div className="flex justify-center gap-4 mt-4 pt-4 border-t border-amber-200">
+          <div className="flex justify-center gap-4 p-4 border-t border-amber-200 bg-amber-50 flex-shrink-0">
             <button
               onClick={() => onNavigate('prev')}
               disabled={!canNavigateBack}

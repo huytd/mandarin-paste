@@ -499,3 +499,30 @@ export function extractChineseCharacters(text: string): string {
   // Extract only Chinese characters from the text
   return text.match(/[\u4e00-\u9fff]/g)?.join('') || '';
 }
+
+// Function to get individual character meanings for multi-character words
+// Excludes characters that have only one radical (to avoid duplication with radical display)
+export function getIndividualCharacterMeanings(word: string): Array<{character: string, pinyin: string, english: string | null, hasMultipleRadicals: boolean}> {
+  if (word.length <= 1) {
+    return []; // Single character words don't need this breakdown
+  }
+  
+  const characterMeanings: Array<{character: string, pinyin: string, english: string | null, hasMultipleRadicals: boolean}> = [];
+  
+  for (const char of word) {
+    const charData = getWordData(char);
+    const radicalDecomp = getRadicalDecomposition(char);
+    
+    // Check if the character has multiple radicals
+    const hasMultipleRadicals = radicalDecomp ? radicalDecomp.components.length > 1 : false;
+    
+    characterMeanings.push({
+      character: char,
+      pinyin: charData.pinyin,
+      english: charData.english,
+      hasMultipleRadicals
+    });
+  }
+  
+  return characterMeanings;
+}
