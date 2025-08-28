@@ -51,7 +51,7 @@ const WordDefinition = React.memo(function WordDefinition({
   const canNavigateForward = currentWordIndex < allWords.length - 1;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-amber-50 border-t-2 border-amber-200 shadow-lg transform transition-transform duration-300 ease-in-out z-50 max-h-[80vh] overflow-hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-amber-50 dark:bg-zinc-900 border-t-2 border-amber-200 dark:border-zinc-800 shadow-lg transform transition-transform duration-300 ease-in-out z-50 max-h-[80vh] overflow-hidden">
       <div className="max-w-4xl mx-auto h-full flex flex-col" data-word-definition>
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto p-6">
@@ -59,13 +59,13 @@ const WordDefinition = React.memo(function WordDefinition({
             <div className="flex-1">
             <div className="flex items-center gap-4 mb-3">
               {/* Chinese Word */}
-              <div className="text-xl font-bold text-gray-800">
+              <div className="text-xl font-bold text-gray-800 dark:text-gray-100">
                 {word.word}
               </div>
               
               {/* Pinyin */}
               {word.pinyin && (
-                <div className="text-xl text-blue-600 font-medium">
+                <div className="text-xl text-blue-600 dark:text-blue-400 font-medium">
                   {word.pinyin}
                 </div>
               )}
@@ -73,14 +73,14 @@ const WordDefinition = React.memo(function WordDefinition({
             
             {/* English Definition */}
             {word.english && (
-              <div className="text-base text-gray-700 leading-relaxed mb-2">
+              <div className="text-base text-gray-700 dark:text-gray-200 leading-relaxed mb-2">
                 {word.english}
               </div>
             )}
             
             {/* No definition available */}
             {!word.english && (
-              <div className="text-gray-500 italic mb-4">
+              <div className="text-gray-500 dark:text-gray-400 italic mb-4">
                 No definition available
               </div>
             )}
@@ -95,8 +95,8 @@ const WordDefinition = React.memo(function WordDefinition({
               
               if (filteredMeanings.length > 0) {
                 return (
-                  <div className="mt-4 pt-4 border-t border-amber-300">
-                    <div className="text-sm font-semibold text-gray-700 mb-3">
+                  <div className="mt-4 pt-4 border-t border-amber-300 dark:border-zinc-800">
+                    <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
                       Individual Character Meanings:
                     </div>
                                           <div className="space-y-3">
@@ -107,17 +107,17 @@ const WordDefinition = React.memo(function WordDefinition({
                           return (
                             <div key={index}>
                               <div className="flex items-start gap-3">
-                                <div className="text-xl font-bold text-gray-800 min-w-[32px]">
+                                <div className="text-xl font-bold text-gray-800 dark:text-gray-100 min-w-[32px]">
                                   {charData.character}
                                 </div>
                                 <div className="flex-1">
                                   {charData.pinyin && (
-                                    <div className="text-base text-blue-600 font-medium">
+                                    <div className="text-base text-blue-600 dark:text-blue-400 font-medium">
                                       {charData.pinyin}
                                     </div>
                                   )}
                                   {charData.english && (
-                                    <div className="text-sm text-gray-700">
+                                    <div className="text-sm text-gray-700 dark:text-gray-200">
                                       {charData.english}
                                     </div>
                                   )}
@@ -125,13 +125,13 @@ const WordDefinition = React.memo(function WordDefinition({
                                   {/* Radical breakdown for this character - only show if character has multiple radicals */}
                                   {radicalDecomp && radicalDecomp.components.length > 1 && (
                                     <div className="mt-1">
-                                      <div className="text-xs text-gray-500 mb-1">
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                                         Radicals: {radicalDecomp.components.map((comp, compIndex) => (
                                           <span key={compIndex} className="ml-1">
-                                            <span className="text-green-600 font-medium">{comp.radical}</span>
-                                            {comp.pinyin && <span className="text-blue-500 ml-1">({comp.pinyin})</span>}
-                                            {comp.meaning && <span className="text-gray-600 ml-1">{comp.meaning}</span>}
-                                            {compIndex < radicalDecomp.components.length - 1 && <span className="text-gray-400">,</span>}
+                                            <span className="text-green-600 dark:text-green-400 font-medium">{comp.radical}</span>
+                                            {comp.pinyin && <span className="text-blue-500 dark:text-blue-400 ml-1">({comp.pinyin})</span>}
+                                            {comp.meaning && <span className="text-gray-600 dark:text-gray-300 ml-1">{comp.meaning}</span>}
+                                            {compIndex < radicalDecomp.components.length - 1 && <span className="text-gray-400 dark:text-gray-500">,</span>}
                                           </span>
                                         ))}
                                       </div>
@@ -165,25 +165,25 @@ const WordDefinition = React.memo(function WordDefinition({
               }
               
               return (
-              <div className="mt-4 pt-4 border-t border-amber-300">
-                <div className="text-sm font-semibold text-gray-700 mb-3">
+              <div className="mt-4 pt-4 border-t border-amber-300 dark:border-zinc-800">
+                <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
                   Character Structure & Radicals:
                 </div>
                 <div className="space-y-3">
                   {word.radicals.map((radical, radicalIndex) => (
                     <div key={radicalIndex}>
                       <div className="flex items-start gap-3">
-                        <div className="text-xl font-bold text-gray-800 min-w-[32px]">
+                        <div className="text-xl font-bold text-gray-800 dark:text-gray-100 min-w-[32px]">
                           {radical.character}
                         </div>
                         <div className="flex-1">
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
                             Radicals: {radical.components.map((comp, compIndex) => (
                               <span key={compIndex} className="ml-1">
-                                <span className="text-green-600 font-medium">{comp.radical}</span>
-                                {comp.pinyin && <span className="text-blue-500 ml-1">({comp.pinyin})</span>}
-                                {comp.meaning && <span className="text-gray-600 ml-1">{comp.meaning}</span>}
-                                {compIndex < radical.components.length - 1 && <span className="text-gray-400">,</span>}
+                                <span className="text-green-600 dark:text-green-400 font-medium">{comp.radical}</span>
+                                {comp.pinyin && <span className="text-blue-500 dark:text-blue-400 ml-1">({comp.pinyin})</span>}
+                                {comp.meaning && <span className="text-gray-600 dark:text-gray-300 ml-1">{comp.meaning}</span>}
+                                {compIndex < radical.components.length - 1 && <span className="text-gray-400 dark:text-gray-500">,</span>}
                               </span>
                             ))}
                           </div>
@@ -200,7 +200,7 @@ const WordDefinition = React.memo(function WordDefinition({
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="ml-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+              className="ml-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-zinc-800 rounded-full transition-colors flex-shrink-0"
               aria-label="Close definition"
             >
               <svg 
@@ -222,7 +222,7 @@ const WordDefinition = React.memo(function WordDefinition({
         
         {/* Navigation buttons - fixed at bottom */}
         {onNavigate && allWords.length > 1 && (
-          <div className="flex justify-center gap-4 p-4 border-t border-amber-200 bg-amber-50 flex-shrink-0">
+          <div className="flex justify-center gap-4 p-4 border-t border-amber-200 dark:border-zinc-800 bg-amber-50 dark:bg-zinc-900 flex-shrink-0">
             <button
               onClick={() => onNavigate('prev')}
               disabled={!canNavigateBack}
@@ -245,7 +245,7 @@ const WordDefinition = React.memo(function WordDefinition({
               Previous
             </button>
             
-            <div className="flex items-center text-sm text-gray-600">
+            <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
               {currentWordIndex + 1} of {allWords.length}
             </div>
             

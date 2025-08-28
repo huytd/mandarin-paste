@@ -145,7 +145,7 @@ export default function Home() {
             key={`word-${index}-${wordData.word}`}
             role="button"
             tabIndex={0}
-            className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 mr-1 transition-colors duration-150 ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
+            className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 dark:hover:text-black rounded-sm mr-0.5 transition-colors duration-150 ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground dark:text-black' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
               handleWordClick(wordData);
@@ -427,7 +427,7 @@ export default function Home() {
                     </ol>
                   ),
                   li: ({children}) => (
-                    <li className="text-lg leading-relaxed relative pl-6 before:content-['•'] before:absolute before:left-0 before:text-blue-500 before:font-bold before:text-xl rounded-md p-1 -m-1">
+                    <li className="text-lg leading-relaxed relative pl-2 rounded-md p-1 -m-1">
                       {renderContentWithClickableWords(children)}
                     </li>
                   ),
@@ -457,7 +457,7 @@ export default function Home() {
                     </a>
                   ),
                   strong: ({children}) => (
-                    <strong className="font-bold text-foreground bg-yellow-100 px-1 rounded">
+                    <strong className="font-bold text-foreground">
                       {children}
                     </strong>
                   ),
