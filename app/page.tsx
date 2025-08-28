@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import TurndownService from 'turndown';
-import { ChineseWord, processChineseTextWithPositions, clearContentCaches, processChineseText } from '../lib/chinese-utils';
+import { ChineseWord, processChineseTextWithPositions, clearContentCaches, processChineseText, getRadicalDecomposition, findWordInVocabulary, RadicalDecomposition } from '../lib/chinese-utils';
 import WordDefinition from '../components/WordDefinition';
 import VocabularyList from '../components/VocabularyList';
 import FlashcardMode from '../components/FlashcardMode';
@@ -44,7 +44,19 @@ export default function Home() {
     const wordIndex = uniqueWords.findIndex(w => w.word === word.word);
     setCurrentWordIndex(wordIndex);
     
-    setSelectedWord(word);
+    // Ensure radicals are available like in vocabulary list
+    const existing = findWordInVocabulary(word.word, vocabularyWords);
+    let enriched: ChineseWord = word;
+    if (existing && existing.radicals && existing.radicals.length > 0) {
+      enriched = { ...word, radicals: existing.radicals };
+    } else if (!word.radicals || word.radicals.length === 0) {
+      const radicals: RadicalDecomposition[] = Array.from(word.word)
+        .map((ch) => getRadicalDecomposition(ch)!)
+        .filter(Boolean) as RadicalDecomposition[];
+      enriched = { ...word, radicals: radicals.length > 0 ? radicals : undefined };
+    }
+
+    setSelectedWord(enriched);
     setShowWordDefinition(true);
     setHighlightedWord(word.word);
   };
@@ -61,9 +73,20 @@ export default function Home() {
     
     if (newIndex !== currentWordIndex) {
       const newWord = allWordsInText[newIndex];
+      // Enrich with radicals on navigation
+      const existing = findWordInVocabulary(newWord.word, vocabularyWords);
+      let enriched: ChineseWord = newWord;
+      if (existing && existing.radicals && existing.radicals.length > 0) {
+        enriched = { ...newWord, radicals: existing.radicals };
+      } else if (!newWord.radicals || newWord.radicals.length === 0) {
+        const radicals: RadicalDecomposition[] = Array.from(newWord.word)
+          .map((ch) => getRadicalDecomposition(ch)!)
+          .filter(Boolean) as RadicalDecomposition[];
+        enriched = { ...newWord, radicals: radicals.length > 0 ? radicals : undefined };
+      }
       setCurrentWordIndex(newIndex);
-      setSelectedWord(newWord);
-      setHighlightedWord(newWord.word);
+      setSelectedWord(enriched);
+      setHighlightedWord(enriched.word);
     }
   };
 
@@ -122,8 +145,8 @@ export default function Home() {
             key={`word-${index}-${wordData.word}`}
             role="button"
             tabIndex={0}
-            className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
-            onPointerUp={(e) => {
+            className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 mr-1 transition-colors duration-150 ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
+            onClick={(e) => {
               e.stopPropagation();
               handleWordClick(wordData);
             }}
@@ -140,6 +163,28 @@ export default function Home() {
     });
 
     return elements;
+  };
+
+  // Recursively ensure all nested markdown children strings are processed into clickable spans
+  const renderContentWithClickableWords = (node: React.ReactNode): React.ReactNode => {
+    if (node == null || node === false) return node;
+    if (typeof node === 'string') {
+      return renderChineseTextWithClickableWords(node);
+    }
+    if (Array.isArray(node)) {
+      return node.map((child, idx) => (
+        <React.Fragment key={idx}>{renderContentWithClickableWords(child)}</React.Fragment>
+      ));
+    }
+    if (React.isValidElement(node)) {
+      const element = node as React.ReactElement<{ children?: React.ReactNode }>;
+      const props = element.props;
+      if (props && 'children' in props) {
+        return React.cloneElement(element, { ...props, children: renderContentWithClickableWords(props.children) });
+      }
+      return node;
+    }
+    return node;
   };
 
   const handleCloseWordDefinition = () => {
@@ -336,39 +381,21 @@ export default function Home() {
                 rehypePlugins={[rehypeRaw]}
                 components={{
 
-                  h1: ({children}) => {
-                    const text = typeof children === 'string' ? children : '';
-                    return (
-                      <h1 className="text-4xl font-bold mb-8 text-foreground border-b-2 border-foreground/20 pb-4 leading-tight">
-                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
-                          ? renderChineseTextWithClickableWords(text)
-                          : children
-                        }
-                      </h1>
-                    );
-                  },
-                  h2: ({children}) => {
-                    const text = typeof children === 'string' ? children : '';
-                    return (
-                      <h2 className="text-3xl font-bold mb-6 mt-8 text-foreground border-b border-foreground/20 pb-2 leading-tight">
-                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
-                          ? renderChineseTextWithClickableWords(text)
-                          : children
-                        }
-                      </h2>
-                    );
-                  },
-                  h3: ({children}) => {
-                    const text = typeof children === 'string' ? children : '';
-                    return (
-                      <h3 className="text-2xl font-bold mb-4 mt-6 text-foreground/80 leading-tight">
-                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
-                          ? renderChineseTextWithClickableWords(text)
-                          : children
-                        }
-                      </h3>
-                    );
-                  },
+                  h1: ({children}) => (
+                    <h1 className="text-4xl font-bold mb-8 text-foreground border-b-2 border-foreground/20 pb-4 leading-tight">
+                      {renderContentWithClickableWords(children)}
+                    </h1>
+                  ),
+                  h2: ({children}) => (
+                    <h2 className="text-3xl font-bold mb-6 mt-8 text-foreground border-b border-foreground/20 pb-2 leading-tight">
+                      {renderContentWithClickableWords(children)}
+                    </h2>
+                  ),
+                  h3: ({children}) => (
+                    <h3 className="text-2xl font-bold mb-4 mt-6 text-foreground/80 leading-tight">
+                      {renderContentWithClickableWords(children)}
+                    </h3>
+                  ),
                   h4: ({children}) => (
                     <h4 className="text-xl font-semibold mb-3 mt-5 text-foreground/80 leading-tight">
                       {children}
@@ -384,17 +411,11 @@ export default function Home() {
                       {children}
                     </h6>
                   ),
-                  p: ({children}) => {
-                    const text = typeof children === 'string' ? children : '';
-                    return (
-                      <p className="mb-6 text-foreground leading-relaxed text-lg rounded-md p-1 -m-1">
-                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
-                          ? renderChineseTextWithClickableWords(text)
-                          : children
-                        }
-                      </p>
-                    );
-                  },
+                  p: ({children}) => (
+                    <p className="mb-6 text-foreground leading-relaxed text-lg rounded-md p-1 -m-1">
+                      {renderContentWithClickableWords(children)}
+                    </p>
+                  ),
                   ul: ({children}) => (
                     <ul className="list-none mb-6 space-y-2 pl-4">
                       {children}
@@ -405,17 +426,11 @@ export default function Home() {
                       {children}
                     </ol>
                   ),
-                  li: ({children}) => {
-                    const text = typeof children === 'string' ? children : '';
-                    return (
-                      <li className="text-lg leading-relaxed relative pl-6 before:content-['•'] before:absolute before:left-0 before:text-blue-500 before:font-bold before:text-xl rounded-md p-1 -m-1">
-                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
-                          ? renderChineseTextWithClickableWords(text)
-                          : children
-                        }
-                      </li>
-                    );
-                  },
+                  li: ({children}) => (
+                    <li className="text-lg leading-relaxed relative pl-6 before:content-['•'] before:absolute before:left-0 before:text-blue-500 before:font-bold before:text-xl rounded-md p-1 -m-1">
+                      {renderContentWithClickableWords(children)}
+                    </li>
+                  ),
                   code: ({children}) => (
                     <code className="bg-gray-100 border border-gray-200 px-2 py-1 rounded-md text-sm font-mono text-purple-700 font-medium">
                       {children}
@@ -426,17 +441,11 @@ export default function Home() {
                       {children}
                     </pre>
                   ),
-                  blockquote: ({children}) => {
-                    const text = typeof children === 'string' ? children : '';
-                    return (
-                      <blockquote className="border-l-4 border-foreground/30 pl-6 pr-4 py-4 mb-6 bg-foreground/5 rounded-r-lg italic text-foreground/80 text-lg shadow-sm">
-                        {typeof children === 'string' && /[\u4e00-\u9fff]/.test(text) 
-                          ? renderChineseTextWithClickableWords(text)
-                          : children
-                        }
-                      </blockquote>
-                    );
-                  },
+                  blockquote: ({children}) => (
+                    <blockquote className="border-l-4 border-foreground/30 pl-6 pr-4 py-4 mb-6 bg-foreground/5 rounded-r-lg italic text-foreground/80 text-lg shadow-sm">
+                      {renderContentWithClickableWords(children)}
+                    </blockquote>
+                  ),
                   a: ({href, children}) => (
                     <a 
                       href={href} 
