@@ -54,6 +54,11 @@ const VocabularyList: React.FC<VocabularyListProps> = ({ words, onWordClick, onS
             {word.radicals && word.radicals.length > 0 && (
               <div className="border-t border-foreground/10 pt-2 mt-2">
                 <div className="text-xs text-foreground/60 mb-1">Radicals:</div>
+                {word.radicals.length > 1 && word.english && (
+                  <div className="text-xs text-foreground/70 mb-2">
+                    {word.english}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {word.radicals.map((radical, radicalIndex) => (
                     <div key={radicalIndex} className="text-sm border border-green-200 rounded px-2 py-1 bg-green-50">

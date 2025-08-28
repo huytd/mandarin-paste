@@ -89,6 +89,11 @@ const WordDefinition = React.memo(function WordDefinition({
                 <div className="text-sm font-semibold text-gray-700 mb-3">
                   Character Structure & Radicals:
                 </div>
+                {word.radicals.length > 1 && word.english && (
+                  <div className="text-sm text-gray-700 mb-2">
+                    {word.english}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-3">
                   {word.radicals.map((radical, radicalIndex) => (
                     <div key={radicalIndex} className="bg-white border border-amber-200 rounded-lg p-3 shadow-sm">
