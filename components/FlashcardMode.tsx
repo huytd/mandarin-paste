@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChineseWord } from '../lib/chinese-utils';
+import { ChineseWord, getIndividualCharacterMeanings } from '../lib/chinese-utils';
 
 interface FlashcardModeProps {
   words: ChineseWord[];
@@ -139,6 +139,117 @@ const FlashcardMode: React.FC<FlashcardModeProps> = ({ words, isVisible, onClose
                     No translation available
                   </div>
                 )}
+                
+                {/* Individual character meanings for multi-character words */}
+                {currentWord.word.length > 1 && (() => {
+                  const characterMeanings = getIndividualCharacterMeanings(currentWord.word);
+                  // Show all characters that have pinyin or english, regardless of radical count
+                  const filteredMeanings = characterMeanings.filter(char => 
+                    char.pinyin || char.english
+                  );
+                  
+                  if (filteredMeanings.length > 0) {
+                    return (
+                      <div className="mt-4 pt-4 border-t border-foreground/20 max-w-2xl">
+                        <div className="text-sm font-semibold text-foreground/70 mb-3">
+                          Individual Character Meanings:
+                        </div>
+                        <div className="space-y-3">
+                          {filteredMeanings.map((charData, index) => {
+                            // Get radical decomposition for this character
+                            const radicalDecomp = currentWord.radicals?.find(r => r.character === charData.character);
+                            
+                            return (
+                              <div key={index}>
+                                <div className="flex items-start gap-3">
+                                  <div className="text-lg font-bold text-foreground min-w-[32px]">
+                                    {charData.character}
+                                  </div>
+                                  <div className="flex-1">
+                                    {charData.pinyin && (
+                                      <div className="text-base text-blue-600 font-medium">
+                                        {charData.pinyin}
+                                      </div>
+                                    )}
+                                    {charData.english && (
+                                      <div className="text-sm text-foreground/80">
+                                        {charData.english}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Radical breakdown for this character - only show if character has multiple radicals */}
+                                    {radicalDecomp && radicalDecomp.components.length > 1 && (
+                                      <div className="mt-1">
+                                        <div className="text-xs text-foreground/60">
+                                          Radicals: {radicalDecomp.components.map((comp, compIndex) => (
+                                            <span key={compIndex} className="ml-1">
+                                              <span className="text-green-600 font-medium">{comp.radical}</span>
+                                              {comp.pinyin && <span className="text-blue-500 ml-1">({comp.pinyin})</span>}
+                                              {comp.meaning && <span className="text-foreground/60 ml-1">{comp.meaning}</span>}
+                                              {compIndex < radicalDecomp.components.length - 1 && <span className="text-foreground/40">,</span>}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                
+                {/* Character Structure & Radicals - only show if no individual character meanings are displayed */}
+                {currentWord.radicals && currentWord.radicals.length > 0 && (() => {
+                  // Check if we're showing individual character meanings
+                  if (currentWord.word.length > 1) {
+                    const characterMeanings = getIndividualCharacterMeanings(currentWord.word);
+                    const hasFilteredMeanings = characterMeanings.filter(char => 
+                      char.pinyin || char.english
+                    ).length > 0;
+                    
+                    // If we have individual character meanings, don't show separate radical section
+                    if (hasFilteredMeanings) {
+                      return null;
+                    }
+                  }
+                  
+                  return (
+                    <div className="mt-4 pt-4 border-t border-foreground/20 max-w-2xl">
+                      <div className="text-sm font-semibold text-foreground/70 mb-3">
+                        Character Structure & Radicals:
+                      </div>
+                      <div className="space-y-3">
+                        {currentWord.radicals.map((radical, radicalIndex) => (
+                          <div key={radicalIndex}>
+                            <div className="flex items-start gap-3">
+                              <div className="text-lg font-bold text-foreground min-w-[32px]">
+                                {radical.character}
+                              </div>
+                              <div className="flex-1">
+                                <div className="text-xs text-foreground/60">
+                                  Radicals: {radical.components.map((comp, compIndex) => (
+                                    <span key={compIndex} className="ml-1">
+                                      <span className="text-green-600 font-medium">{comp.radical}</span>
+                                      {comp.pinyin && <span className="text-blue-500 ml-1">({comp.pinyin})</span>}
+                                      {comp.meaning && <span className="text-foreground/60 ml-1">{comp.meaning}</span>}
+                                      {compIndex < radical.components.length - 1 && <span className="text-foreground/40">,</span>}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
