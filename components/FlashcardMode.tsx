@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChineseWord } from '../lib/chinese-utils';
+import { ChineseWord, getWordData } from '../lib/chinese-utils';
 
 interface FlashcardModeProps {
   words: ChineseWord[];
@@ -137,6 +137,37 @@ const FlashcardMode: React.FC<FlashcardModeProps> = ({ words, isVisible, onClose
                 {!currentWord.english && (
                   <div className="text-foreground/50 italic">
                     No translation available
+                  </div>
+                )}
+                {currentWord.radicals && currentWord.radicals.length > 0 && (
+                  <div className="border-t border-foreground/10 pt-2 mt-2 max-w-md mx-auto">
+                    <div className="text-xs text-foreground/60 mb-1">Character structure</div>
+                    <div className="space-y-1 text-sm text-foreground/90">
+                      {currentWord.radicals.map((radical, radicalIndex) => {
+                        const charInfo = getWordData(radical.character);
+                        return (
+                          <div key={radicalIndex} className="leading-relaxed">
+                            <span className="font-semibold mr-2">{radical.character}</span>
+                            {charInfo.pinyin ? (
+                              <span className="text-blue-600 mr-1">{charInfo.pinyin}</span>
+                            ) : null}
+                            {charInfo.english ? (
+                              <span className="text-foreground/70 mr-2">[{charInfo.english}]</span>
+                            ) : null}
+                            <span>:
+                              {radical.components.map((comp, compIndex) => (
+                                <span key={compIndex}>
+                                  {compIndex > 0 ? ' + ' : ' '}
+                                  <span className="font-medium">{comp.radical}</span>
+                                  {comp.pinyin ? <span className="text-blue-600"> {comp.pinyin}</span> : null}
+                                  {comp.meaning ? <span className="text-foreground/70"> [{comp.meaning}]</span> : null}
+                                </span>
+                              ))}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
