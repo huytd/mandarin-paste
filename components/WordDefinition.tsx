@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ChineseWord } from '../lib/chinese-utils';
+import { ChineseWord, getWordData } from '../lib/chinese-utils';
 
 interface WordDefinitionProps {
   word: ChineseWord | null;
@@ -83,46 +83,37 @@ const WordDefinition = React.memo(function WordDefinition({
               </div>
             )}
             
-            {/* Radical composition display */}
+            {/* Character structure in plain format */}
             {word.radicals && word.radicals.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-amber-300">
-                <div className="text-sm font-semibold text-gray-700 mb-3">
-                  Character Structure & Radicals:
+              <div className="mt-4">
+                <div className="text-sm font-semibold text-gray-700 mb-2">
+                  Character structure
                 </div>
-                {word.radicals.length > 1 && word.english && (
-                  <div className="text-sm text-gray-700 mb-2">
-                    {word.english}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-3">
-                  {word.radicals.map((radical, radicalIndex) => (
-                    <div key={radicalIndex} className="bg-white border border-amber-200 rounded-lg p-3 shadow-sm">
-                      <div className="text-lg font-bold text-gray-800 mb-2 text-center">
-                        {radical.character}
-                      </div>
-                      <div className="space-y-1">
-                        {radical.components.map((comp, compIndex) => (
-                          <div key={compIndex} className="flex items-center gap-2 text-sm">
-                            <span className="text-xl text-green-700 font-medium min-w-[24px] text-center">
-                              {comp.radical}
+                <div className="space-y-2 text-sm text-gray-800">
+                  {word.radicals.map((radical, radicalIndex) => {
+                    const charInfo = getWordData(radical.character);
+                    return (
+                      <div key={radicalIndex} className="leading-relaxed">
+                        <span className="text-base font-semibold mr-2">{radical.character}</span>
+                        {charInfo.pinyin ? (
+                          <span className="text-blue-600 mr-1">{charInfo.pinyin}</span>
+                        ) : null}
+                        {charInfo.english ? (
+                          <span className="text-gray-600 mr-2">[{charInfo.english}]</span>
+                        ) : null}
+                        <span>:
+                          {radical.components.map((comp, compIndex) => (
+                            <span key={compIndex}>
+                              {compIndex > 0 ? ' + ' : ' '}
+                              <span className="font-medium">{comp.radical}</span>
+                              {comp.pinyin ? <span className="text-blue-600"> {comp.pinyin}</span> : null}
+                              {comp.meaning ? <span className="text-gray-600"> [{comp.meaning}]</span> : null}
                             </span>
-                            <div className="flex flex-col text-xs">
-                              {comp.pinyin && (
-                                <span className="text-blue-600 font-medium">
-                                  {comp.pinyin}
-                                </span>
-                              )}
-                              {comp.meaning && (
-                                <span className="text-gray-600">
-                                  {comp.meaning}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

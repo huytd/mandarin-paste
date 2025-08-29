@@ -130,7 +130,7 @@ async function fetchArticleMarkdown(url: string): Promise<{ url: string; title: 
 }
 
 function buildChineseSummaryPrompt(sources: { url: string; title: string; excerpt: string }[]): { system: string; user: string } {
-  const system = "你是一名财经与科技新闻编辑，擅长用简体中文快速、准确地汇总要点。";
+  const system = "你是一名财经与科技新闻编辑，擅长用简体中文快速、准确地汇总要点。严格只使用 HSK 1 词汇。";
   const now = new Date().toISOString();
   const header = `请基于以下英文新闻原文摘录，用简体中文生成“美国科技要闻”和“美国金融要闻”的当日总结（时间：${now}）。要求：\n- 每部分3-6条要点，使用简短项目符号。\n- 用自己的话概括，避免逐句翻译。\n- 在文末提供来源列表（标题 + 链接）。`;
   const docs = sources.map((s, i) => `【来源${i + 1}】\n标题：${s.title}\n链接：${s.url}\n正文摘录：\n${s.excerpt}`).join("\n\n");
