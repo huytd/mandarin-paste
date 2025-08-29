@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChineseWord } from '../lib/chinese-utils';
+import { ChineseWord, getWordData } from '../lib/chinese-utils';
 
 interface VocabularyListProps {
   words: ChineseWord[];
@@ -50,36 +50,35 @@ const VocabularyList: React.FC<VocabularyListProps> = ({ words, onWordClick, onS
                 {word.english}
               </div>
             )}
-            {/* Radical composition display */}
+            {/* Radical composition display (plain style) */}
             {word.radicals && word.radicals.length > 0 && (
               <div className="border-t border-foreground/10 pt-2 mt-2">
-                <div className="text-xs text-foreground/60 mb-1">Radicals:</div>
-                {word.radicals.length > 1 && word.english && (
-                  <div className="text-xs text-foreground/70 mb-2">
-                    {word.english}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  {word.radicals.map((radical, radicalIndex) => (
-                    <div key={radicalIndex} className="text-sm border border-green-200 rounded px-2 py-1 bg-green-50">
-                      <div className="font-medium text-foreground/70 mb-1">
-                        {radical.character}:
+                <div className="text-xs text-foreground/60 mb-1">Character structure</div>
+                <div className="space-y-1 text-sm text-foreground">
+                  {word.radicals.map((radical, radicalIndex) => {
+                    const charInfo = getWordData(radical.character);
+                    return (
+                      <div key={radicalIndex} className="leading-relaxed">
+                        <span className="font-semibold mr-2">{radical.character}</span>
+                        {charInfo.pinyin ? (
+                          <span className="text-blue-600 mr-1">{charInfo.pinyin}</span>
+                        ) : null}
+                        {charInfo.english ? (
+                          <span className="text-foreground/70 mr-2">[{charInfo.english}]</span>
+                        ) : null}
+                        <span>:
+                          {radical.components.map((comp, compIndex) => (
+                            <span key={compIndex}>
+                              {compIndex > 0 ? ' + ' : ' '}
+                              <span className="font-medium">{comp.radical}</span>
+                              {comp.pinyin ? <span className="text-blue-600"> {comp.pinyin}</span> : null}
+                              {comp.meaning ? <span className="text-foreground/70"> [{comp.meaning}]</span> : null}
+                            </span>
+                          ))}
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-1 text-xs">
-                        {radical.components.map((comp, compIndex) => (
-                          <span key={compIndex} className="text-green-700">
-                            {comp.radical}
-                            {comp.pinyin && (
-                              <span className="text-blue-500 ml-1">({comp.pinyin})</span>
-                            )}
-                            {comp.meaning && (
-                              <span className="text-gray-600 ml-1">[{comp.meaning}]</span>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
