@@ -442,7 +442,7 @@ export function getWordData(word: string): { pinyin: string; english: string | n
       const convertedPinyin = convertPinyinTones(entry.pinyin);
       const result = {
         pinyin: convertedPinyin,
-        english: allEnglish
+        english: convertPinyinTones(allEnglish)
       };
 
       // Cache the result

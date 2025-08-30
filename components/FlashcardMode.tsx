@@ -116,7 +116,7 @@ const FlashcardMode: React.FC<FlashcardModeProps> = ({ words, isVisible, onClose
         </div>
 
         {/* Flashcard content */}
-        <div className="p-8 flex flex-col items-center justify-center min-h-[300px]">
+        <div className="p-8 flex flex-col items-center justify-center min-h-[300px] max-h-[350px] overflow-y-auto">
           <div className="text-center mb-8">
             <div className="text-6xl font-bold text-foreground mb-6">
               {currentWord.word}
@@ -130,7 +130,7 @@ const FlashcardMode: React.FC<FlashcardModeProps> = ({ words, isVisible, onClose
                   </div>
                 )}
                 {currentWord.english && (
-                  <div className="text-lg text-foreground/80 leading-relaxed max-w-md">
+                  <div className="text-sm text-foreground/80 leading-relaxed max-w-md">
                     {currentWord.english}
                   </div>
                 )}
@@ -139,7 +139,7 @@ const FlashcardMode: React.FC<FlashcardModeProps> = ({ words, isVisible, onClose
                     No translation available
                   </div>
                 )}
-                {currentWord.radicals && currentWord.radicals.length > 0 && (
+                {currentWord.radicals && currentWord.radicals.length > 1 && (
                   <div className="border-t border-foreground/10 pt-2 mt-2 max-w-md mx-auto">
                     <div className="text-xs text-foreground/60 mb-1">Character structure</div>
                     <div className="space-y-1 text-sm text-foreground/90">
@@ -158,7 +158,7 @@ const FlashcardMode: React.FC<FlashcardModeProps> = ({ words, isVisible, onClose
                               {radical.components.map((comp, compIndex) => (
                                 <span key={compIndex}>
                                   {compIndex > 0 ? ' + ' : ' '}
-                                  <span className="font-medium">{comp.radical}</span>
+                                  <span className="font-medium text-green-600">{comp.radical}</span>
                                   {comp.pinyin ? <span className="text-blue-600"> {comp.pinyin}</span> : null}
                                   {comp.meaning ? <span className="text-foreground/70"> [{comp.meaning}]</span> : null}
                                 </span>
@@ -195,12 +195,6 @@ const FlashcardMode: React.FC<FlashcardModeProps> = ({ words, isVisible, onClose
             </svg>
             Previous
           </button>
-
-          <div className="text-sm text-foreground/70 text-center">
-            <div>Press ← → to navigate</div>
-            <div>Space to reveal answer</div>
-            <div>Esc to close</div>
-          </div>
 
           <button
             onClick={handleNext}

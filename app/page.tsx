@@ -22,6 +22,7 @@ export default function Home() {
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [vocabularyWords, setVocabularyWords] = useState<ChineseWord[]>([]);
   const [showFlashcards, setShowFlashcards] = useState(false);
+  const [showPinyin, setShowPinyin] = useState(true);
 
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -145,7 +146,7 @@ export default function Home() {
             key={`word-${index}-${wordData.word}`}
             role="button"
             tabIndex={0}
-            className={`select-none cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 mr-1 transition-colors duration-150 ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
+            className={`cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-1 transition-colors duration-150 inline-flex flex-col items-center ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
               handleWordClick(wordData);
@@ -153,7 +154,8 @@ export default function Home() {
             onKeyDown={handleWordKeyDown(wordData)}
             title={`${wordData.pinyin || ''} - ${wordData.english || 'No translation'}`}
           >
-            {wordData.word}
+            {showPinyin && ( <span className={`text-xs opacity-35`}>{wordData.pinyin}</span> )}
+            <span className={`text-lg`}>{wordData.word}</span>
           </span>
         );
       } else {
@@ -376,6 +378,17 @@ export default function Home() {
         ) : (
           // Rendered Content Area
           <div className="bg-background rounded-lg shadow-md">
+            <div className="p-8 border-b border-gray-300 dark:border-gray-800 space-x-4">
+              <button
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md"
+                onClick={() => setShowFlashcards(true)}
+              >Flashcard</button>
+
+              <button
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md"
+                onClick={() => setShowPinyin(!showPinyin)}
+              >{showPinyin ? 'Hide' : 'Show'} Pinyin</button>
+            </div>
             <div className="p-8 max-w-none" ref={contentRef}>
               <ReactMarkdown 
                 rehypePlugins={[rehypeRaw]}
@@ -512,14 +525,7 @@ export default function Home() {
               >
                 {markdownContent}
               </ReactMarkdown>              
-            </div>
-            
-            {/* Vocabulary List */}
-            <VocabularyList 
-              words={vocabularyWords}
-              onWordClick={handleWordClick}
-              onStartFlashcards={() => setShowFlashcards(true)}
-            />
+            </div>            
           </div>
         )}
         
