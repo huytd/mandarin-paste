@@ -475,18 +475,18 @@ export default function Home() {
         ) : (
           // Rendered Content Area
           <div className="bg-background rounded-lg shadow-md">
-            <div className="p-8 border-b border-gray-300 dark:border-gray-800 space-x-4">
+            <div className="p-4 border-b border-gray-300 dark:border-gray-800 space-x-4">
               <button
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md"
+                className="px-4 py-2 text-blue-600 bg-gray-100 hover:bg-gray-200 rounded-md font-medium"
                 onClick={() => setShowFlashcards(true)}
-              >Flashcard</button>
+              >🧠 Flashcard</button>
 
               <button
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md"
+                className="px-4 py-2 text-blue-600 bg-gray-100 hover:bg-gray-200 rounded-md font-medium"
                 onClick={() => setShowPinyin(!showPinyin)}
-              >{showPinyin ? 'Hide' : 'Show'} Pinyin</button>
+              >🆎 {showPinyin ? 'Hide' : 'Show'} Pinyin</button>
             </div>
-            <div className="p-8 max-w-none" ref={contentRef}>
+            <div className="p-4 max-w-none" ref={contentRef}>
               <ReactMarkdown 
                 rehypePlugins={[rehypeRaw]}
                 components={{
