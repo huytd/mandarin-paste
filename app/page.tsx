@@ -154,13 +154,22 @@ export default function Home() {
             onKeyDown={handleWordKeyDown(wordData)}
             title={`${wordData.pinyin || ''} - ${wordData.english || 'No translation'}`}
           >
-            {showPinyin && ( <span className={`text-xs opacity-35`}>{wordData.pinyin}</span> )}
+            {showPinyin && ( <span className={`text-xs opacity-35`}>{wordData.pinyin ?? " "}</span> )}
             <span className={`text-lg`}>{wordData.word}</span>
           </span>
         );
       } else {
         // This is non-Chinese text
-        elements.push(part.text);
+        elements.push(
+          <span
+            key={`word-${index}-${part.text}`}
+            tabIndex={0}
+            className={`rounded-sm px-1 transition-colors duration-150 inline-flex flex-col items-center`}
+          >
+            {showPinyin && (<span className={`text-xs opacity-35`}>&nbsp;</span>)}
+            <span className={`text-lg`}>{part.text}</span>
+          </span>
+        );
       }
     });
 

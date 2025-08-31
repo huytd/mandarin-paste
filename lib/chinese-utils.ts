@@ -329,10 +329,33 @@ export function processChineseTextWithPositions(text: string): { words: ChineseW
   const cacheKey = `positions_${text}`;
   const cached = processedTextCache.get(cacheKey);
   if (cached) {
-    return {
-      words: cached,
-      nonChineseParts: []
-    };
+    // Reconstruct non-Chinese parts from cached word positions to avoid losing content
+    const wordsWithPositions = [...cached].sort((a, b) => (a.startIndex ?? 0) - (b.startIndex ?? 0));
+    const nonChineseParts: Array<{ text: string, startIndex: number, endIndex: number }> = [];
+
+    let currentIndex = 0;
+    for (const w of wordsWithPositions) {
+      if (w.startIndex == null || w.endIndex == null) {
+        continue;
+      }
+      if (w.startIndex > currentIndex) {
+        nonChineseParts.push({
+          text: text.slice(currentIndex, w.startIndex),
+          startIndex: currentIndex,
+          endIndex: w.startIndex
+        });
+      }
+      currentIndex = Math.max(currentIndex, w.endIndex);
+    }
+    if (currentIndex < text.length) {
+      nonChineseParts.push({
+        text: text.slice(currentIndex),
+        startIndex: currentIndex,
+        endIndex: text.length
+      });
+    }
+
+    return { words: wordsWithPositions, nonChineseParts };
   }
 
   const words: ChineseWord[] = [];
