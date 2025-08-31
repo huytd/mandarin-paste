@@ -6,8 +6,8 @@ import rehypeRaw from 'rehype-raw';
 import TurndownService from 'turndown';
 import { ChineseWord, processChineseTextWithPositions, clearContentCaches, processChineseText, getRadicalDecomposition, findWordInVocabulary, RadicalDecomposition } from '../lib/chinese-utils';
 import WordDefinition from '../components/WordDefinition';
-import VocabularyList from '../components/VocabularyList';
 import FlashcardMode from '../components/FlashcardMode';
+import { TranslatableContent } from '../components/TranslatableContent';
 import Link from 'next/link';
 
 export default function Home() {
@@ -23,6 +23,8 @@ export default function Home() {
   const [vocabularyWords, setVocabularyWords] = useState<ChineseWord[]>([]);
   const [showFlashcards, setShowFlashcards] = useState(false);
   const [showPinyin, setShowPinyin] = useState(true);
+  const [paragraphTranslations, setParagraphTranslations] = useState<Map<string, string>>(new Map());
+  const [translatingParagraphs, setTranslatingParagraphs] = useState<Set<string>>(new Set());
 
   const turndownService = new TurndownService({
     headingStyle: 'atx',
@@ -30,6 +32,76 @@ export default function Home() {
   });
   const clearAllHighlights = () => {
     setHighlightedWord(null);
+  };
+
+  // Helper function to extract text content from React nodes
+  const extractTextContent = (node: React.ReactNode): string => {
+    if (typeof node === 'string') {
+      return node;
+    }
+    if (Array.isArray(node)) {
+      return node.map(extractTextContent).join('');
+    }
+    if (React.isValidElement(node)) {
+      const element = node as React.ReactElement<{ children?: React.ReactNode }>;
+      if (element.props && element.props.children) {
+        return extractTextContent(element.props.children);
+      }
+    }
+    return '';
+  };
+
+  // Helper function to generate a unique ID for a paragraph based on its content
+  const generateParagraphId = (text: string): string => {
+    // Create a simple hash of the text for consistent IDs
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return `para-${Math.abs(hash)}`;
+  };
+
+  // Translation function
+  const translateParagraph = async (text: string, paragraphId: string) => {
+    // Check if already translated or currently translating
+    if (paragraphTranslations.has(paragraphId) || translatingParagraphs.has(paragraphId)) {
+      return;
+    }
+
+    // Add to translating set
+    setTranslatingParagraphs(prev => new Set(prev).add(paragraphId));
+
+    try {
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Translation failed');
+      }
+
+      const data = await response.json();
+      const translation = data.translation;
+
+      // Store the translation
+      setParagraphTranslations(prev => new Map(prev).set(paragraphId, translation));
+    } catch (error) {
+      console.error('Translation error:', error);
+      // You could show a toast notification here
+    } finally {
+      // Remove from translating set
+      setTranslatingParagraphs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(paragraphId);
+        return newSet;
+      });
+    }
   };
 
   // String-based highlighter removed in favor of state-driven highlighting
@@ -146,7 +218,7 @@ export default function Home() {
             key={`word-${index}-${wordData.word}`}
             role="button"
             tabIndex={0}
-            className={`cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-1 transition-colors duration-150 inline-flex flex-col items-center ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 font-bold text-foreground' : ''}`}
+            className={`cursor-pointer hover:bg-yellow-200 hover:bg-opacity-50 rounded-sm px-0.5 transition-colors duration-150 inline-flex flex-col items-center ${highlightedWord === wordData.word ? 'bg-yellow-300 border-2 border-amber-400 text-foreground' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
               handleWordClick(wordData);
@@ -164,7 +236,7 @@ export default function Home() {
           <span
             key={`word-${index}-${part.text}`}
             tabIndex={0}
-            className={`rounded-sm px-1 transition-colors duration-150 inline-flex flex-col items-center`}
+            className={`rounded-sm px-0.5 transition-colors duration-150 inline-flex flex-col items-center`}
           >
             {showPinyin && (<span className={`text-xs opacity-35`}>&nbsp;</span>)}
             <span className={`text-lg`}>{part.text}</span>
@@ -259,6 +331,10 @@ export default function Home() {
       setShowPasteArea(false);
       clearContentCaches(); // Clear caches for new content
       
+      // Clear translations for new content
+      setParagraphTranslations(new Map());
+      setTranslatingParagraphs(new Set());
+      
       // Extract vocabulary words from the content
       const words = processChineseText(finalMarkdown);
       setVocabularyWords(words);
@@ -271,6 +347,10 @@ export default function Home() {
       setMarkdownContent(content);
       setShowPasteArea(false);
       clearContentCaches(); // Clear caches for new content
+      
+      // Clear translations for new content
+      setParagraphTranslations(new Map());
+      setTranslatingParagraphs(new Set());
       
       // Extract vocabulary words from the content
       const words = processChineseText(content);
@@ -289,6 +369,10 @@ export default function Home() {
           setMarkdownContent(text);
           setShowPasteArea(false);
           clearContentCaches(); // Clear caches for new content
+          
+          // Clear translations for new content
+          setParagraphTranslations(new Map());
+          setTranslatingParagraphs(new Set());
           
           // Extract vocabulary words from the content
           const words = processChineseText(text);
@@ -316,6 +400,10 @@ export default function Home() {
         setShowPasteArea(false);
         clearAllHighlights();
         clearContentCaches(); // Clear caches for new content
+        
+        // Clear translations for new content
+        setParagraphTranslations(new Map());
+        setTranslatingParagraphs(new Set());
         
         // Extract vocabulary words from the content
         const words = processChineseText(content);
@@ -433,11 +521,28 @@ export default function Home() {
                       {children}
                     </h6>
                   ),
-                  p: ({children}) => (
-                    <p className="mb-6 text-foreground leading-relaxed text-lg rounded-md p-1 -m-1">
-                      {renderContentWithClickableWords(children)}
-                    </p>
-                  ),
+                  p: ({children}) => {
+                    const textContent = extractTextContent(children);
+                    const paragraphId = generateParagraphId(textContent);
+                    const translation = paragraphTranslations.get(paragraphId);
+                    const isTranslating = translatingParagraphs.has(paragraphId);
+
+                    return (
+                      <div className="mb-6">
+                        <p className="text-foreground leading-relaxed text-lg rounded-md p-1 -m-1">
+                          {renderContentWithClickableWords(children)}
+                        </p>
+                        <TranslatableContent
+                          textContent={textContent}
+                          paragraphId={paragraphId}
+                          translation={translation}
+                          isTranslating={isTranslating}
+                          onTranslate={translateParagraph}
+                          buttonClassName="text-xs rounded-full text-white bg-blue-600 hover:bg-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                        />
+                      </div>
+                    );
+                  },
                   ul: ({children}) => (
                     <ul className="list-none mb-6 space-y-2 pl-4">
                       {children}
@@ -448,11 +553,28 @@ export default function Home() {
                       {children}
                     </ol>
                   ),
-                  li: ({children}) => (
-                    <li className="text-lg leading-relaxed relative pl-6 before:content-['•'] before:absolute before:left-0 before:text-blue-500 before:font-bold before:text-xl rounded-md p-1 -m-1">
-                      {renderContentWithClickableWords(children)}
-                    </li>
-                  ),
+                  li: ({children}) => {
+                    const textContent = extractTextContent(children);
+                    const listItemId = generateParagraphId(textContent);
+                    const translation = paragraphTranslations.get(listItemId);
+                    const isTranslating = translatingParagraphs.has(listItemId);
+
+                    return (
+                      <li className="text-lg leading-relaxed relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-blue-900 before:font-bold before:text-xl rounded-md p-1 -m-1">
+                        <div>
+                          {renderContentWithClickableWords(children)}
+                          <TranslatableContent
+                            textContent={textContent}
+                            paragraphId={listItemId}
+                            translation={translation}
+                            isTranslating={isTranslating}
+                            onTranslate={translateParagraph}
+                            className="mt-4 mb-2"
+                          />
+                        </div>
+                      </li>
+                    );
+                  },
                   code: ({children}) => (
                     <code className="bg-gray-100 border border-gray-200 px-2 py-1 rounded-md text-sm font-mono text-purple-700 font-medium">
                       {children}
@@ -463,11 +585,27 @@ export default function Home() {
                       {children}
                     </pre>
                   ),
-                  blockquote: ({children}) => (
-                    <blockquote className="border-l-4 border-foreground/30 pl-6 pr-4 py-4 mb-6 bg-foreground/5 rounded-r-lg italic text-foreground/80 text-lg shadow-sm">
-                      {renderContentWithClickableWords(children)}
-                    </blockquote>
-                  ),
+                  blockquote: ({children}) => {
+                    const textContent = extractTextContent(children);
+                    const blockquoteId = generateParagraphId(textContent);
+                    const translation = paragraphTranslations.get(blockquoteId);
+                    const isTranslating = translatingParagraphs.has(blockquoteId);
+
+                    return (
+                      <div className="mb-6">
+                        <blockquote className="border-l-4 border-foreground/30 pl-6 pr-4 py-4 bg-foreground/5 rounded-r-lg italic text-foreground/80 text-lg shadow-sm">
+                          {renderContentWithClickableWords(children)}
+                        </blockquote>
+                        <TranslatableContent
+                          textContent={textContent}
+                          paragraphId={blockquoteId}
+                          translation={translation}
+                          isTranslating={isTranslating}
+                          onTranslate={translateParagraph}
+                        />
+                      </div>
+                    );
+                  },
                   a: ({href, children}) => (
                     <a 
                       href={href} 
